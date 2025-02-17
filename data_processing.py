@@ -2,7 +2,7 @@ import pandas as pd
 import difflib
 import logging
 
-# Configure logging for better debugging
+# Configure logging
 logging.basicConfig(filename="data_processing.log", level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 # Expected column names mapping
@@ -14,28 +14,27 @@ EXPECTED_COLUMNS = {
     'conversions': 'conversions',
     'conversion_value': 'conv_value',
     'conversion value': 'conv_value',
-    'conv. value': 'conv_value',  # Handling different variations
+    'conv. value': 'conv_value',
     'conversion_value_/_cost': 'conv_value_cost',
     'conversion value / cost': 'conv_value_cost',
-    'search impression share': 'search_impr_share'
+    'search impression share': 'search_impr_share',
+    'search_impression_share': 'search_impr_share',  # Ensure all variations are covered
+    'search impr. share': 'search_impr_share'
 }
 
 def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Standardizes column names:
+    Cleans and standardizes column names:
     - Converts to lowercase
-    - Strips extra spaces
-    - Replaces spaces and special characters with underscores
-    - Maps known variations of expected columns using fuzzy matching
+    - Strips spaces & replaces with underscores
+    - Matches columns dynamically using fuzzy matching
     """
     df.columns = df.columns.str.strip().str.lower().str.replace(r'\s+', '_', regex=True)
 
-    # Try to match actual columns to expected ones dynamically
-    actual_columns = list(df.columns)
+    # Find closest matches for existing columns
     renamed_columns = {}
-
-    for col in actual_columns:
-        closest_match = difflib.get_close_matches(col, EXPECTED_COLUMNS.keys(), n=1, cutoff=0.8)
+    for col in df.columns:
+        closest_match = difflib.get_close_matches(col, EXPECTED_COLUMNS.keys(), n=1, cutoff=0.7)
         if closest_match:
             new_name = EXPECTED_COLUMNS[closest_match[0]]
             renamed_columns[col] = new_name
@@ -43,16 +42,15 @@ def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
             renamed_columns[col] = col  # Keep it unchanged if no match
 
     df.rename(columns=renamed_columns, inplace=True)
-
     logging.info(f"Column mapping applied: {renamed_columns}")
+
     return df
 
 def validate_columns(df: pd.DataFrame) -> list:
     """
-    Checks if required columns exist after renaming.
-    - Returns a list of missing columns.
+    Checks for missing columns and returns a list of required but absent columns.
     """
-    required_columns = list(EXPECTED_COLUMNS.values())  # Get standardized expected names
+    required_columns = list(EXPECTED_COLUMNS.values())
     missing_columns = [col for col in required_columns if col not in df.columns]
 
     return missing_columns
@@ -60,7 +58,7 @@ def validate_columns(df: pd.DataFrame) -> list:
 def assess_product_performance(df: pd.DataFrame):
     """
     Processes Google PMAX campaign data:
-    - Cleans and maps column names dynamically
+    - Cleans & maps column names dynamically
     - Converts numeric fields safely
     - Provides summary insights
     """
@@ -76,7 +74,7 @@ def assess_product_performance(df: pd.DataFrame):
     for col in ['impr.', 'clicks', 'conversions', 'conv_value']:
         df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
 
-    # Handle percentage conversion dynamically
+    # Convert CTR percentages into decimal format
     if 'ctr' in df.columns:
         df['ctr'] = df['ctr'].astype(str).str.rstrip('%').astype(float) / 100
 
