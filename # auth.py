@@ -1,4 +1,3 @@
-# auth.py
 import streamlit as st
 import streamlit_authenticator as stauth
 
@@ -8,7 +7,7 @@ def get_authenticator():
     usernames = ["staff1", "staff2"]
     passwords = ["password1", "password2"]
 
-    # Generate hashed passwords using the new method name
+    # Generate hashed passwords using the correct method
     hashed_passwords = stauth.Hasher(passwords).generate_hashes()
 
     credentials = {
@@ -19,5 +18,5 @@ def get_authenticator():
     }
 
     # Create and return the authenticator object
-    authenticator = stauth.Authenticate(credentials, "cookie_name", "signature_key")
+    authenticator = stauth.Authenticate(credentials, "cookie_name", "signature_key", cookie_expiry_days=30)
     return authenticator
