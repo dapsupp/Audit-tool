@@ -4,6 +4,7 @@ import plotly.io as pio
 import streamlit as st
 import tempfile
 import logging
+from collections import defaultdict
 from typing import Dict
 
 # Configure logging to file for error tracking
@@ -49,7 +50,8 @@ def detect_header_row(file_path: str) -> int:
     return 0  # Default to first row if no match is found
 
 def process_large_csv(file_path: str, chunk_size: int = 100000) -> Dict[str, float]:
-    """Processes large CSV files in chunks, automatically detecting the header row."""
+    """Processes large CSV files in chunks, automatically detecting the header row, and
+    computes a Pareto metric: how many SKUs drive 80% of the sales."""
     
     # Detect the correct header row
     header_row = detect_header_row(file_path)
@@ -62,6 +64,9 @@ def process_large_csv(file_path: str, chunk_size: int = 100000) -> Dict[str, flo
     total_cost = 0
     total_search_impr_share = 0
     valid_search_impr_count = 0
+    
+    # Dictionary to accumulate sales (conversion value) by SKU
+    sku_sales = defaultdict(float)
     
     try:
         for chunk in pd.read_csv(
@@ -99,7 +104,7 @@ def process_large_csv(file_path: str, chunk_size: int = 100000) -> Dict[str, flo
             else:
                 chunk["search impr. share"] = pd.NA
             
-            # Aggregate Metrics
+            # Aggregate overall metrics
             total_impressions += chunk["impr."].sum()
             total_clicks += chunk["clicks"].sum()
             total_conversions += chunk["conversions"].sum()
@@ -109,27 +114,54 @@ def process_large_csv(file_path: str, chunk_size: int = 100000) -> Dict[str, flo
             valid_search_chunk = chunk["search impr. share"].dropna()
             total_search_impr_share += valid_search_chunk.sum()
             valid_search_impr_count += valid_search_chunk.count()
+            
+            # Update SKU sales if "item id" exists
+            if "item id" in chunk.columns:
+                sku_group = chunk.groupby("item id")["conv. value"].sum()
+                for sku, sale in sku_group.items():
+                    sku_sales[sku] += sale
+            else:
+                logging.warning("Column 'item id' not found in the CSV chunk.")
+        
+        # Compute Pareto metric: SKUs driving 80% of total sales
+        pareto_threshold = 0.8 * total_conversion_value if total_conversion_value else 0
+        sorted_skus = sorted(sku_sales.items(), key=lambda x: x[1], reverse=True)
+        accumulated_sales = 0
+        sku_count_for_pareto = 0
+        
+        for sku, sale in sorted_skus:
+            accumulated_sales += sale
+            sku_count_for_pareto += 1
+            if accumulated_sales >= pareto_threshold:
+                break
+        
+        total_unique_skus = len(sku_sales) if sku_sales else 0
+        pareto_percentage = (sku_count_for_pareto / total_unique_skus * 100) if total_unique_skus else 0
         
         # Compute final metrics
         average_roas = total_conversion_value / total_cost if total_cost > 0 else 0
         average_search_impr_share = (total_search_impr_share / valid_search_impr_count) if valid_search_impr_count > 0 else 0
         
-        return {
+        insights = {
             "Total Impressions": total_impressions,
             "Total Clicks": total_clicks,
             "Total Conversions": total_conversions,
             "Total Conversion Value": total_conversion_value,
             "Total Cost": total_cost,
             "Average ROAS": round(average_roas, 2),
-            "Average Search Impression Share": round(average_search_impr_share, 2)
+            "Average Search Impression Share": round(average_search_impr_share, 2),
+            "SKUs Driving 80% Sales": sku_count_for_pareto,
+            "Percentage of SKUs Driving 80% Sales": round(pareto_percentage, 2)
         }
+        
+        return insights
     except Exception as e:
         st.error(f"Error processing file: {e}")
         logging.error(f"Error processing CSV file: {e}")
         return {}
 
 def create_metrics_bar_chart(insights: Dict[str, float]) -> go.Figure:
-    """Creates a Plotly bar chart for the summary metrics."""
+    """Creates a Plotly bar chart for the summary metrics (excluding Pareto metrics)."""
     # Visualise total metrics only for the bar chart
     metrics = {
         "Total Impressions": insights.get("Total Impressions", 0),
