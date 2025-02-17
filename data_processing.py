@@ -10,10 +10,12 @@ def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
         'clicks': 'clicks',
         'ctr': 'ctr',
         'conversions': 'conversions',
+        'conversion_value': 'conv. value',  # Fix column name matching issue
         'conversion value': 'conv. value',
         'conversion value / cost': 'conv. value / cost',
         'search impression share': 'search impr. share'
     }
+
     df.rename(columns=rename_map, inplace=True)
     return df
 
@@ -21,8 +23,17 @@ def assess_product_performance(df: pd.DataFrame):
     """Assess product-level performance in Google PMAX campaigns."""
     df = clean_column_names(df)
 
-    numeric_columns = ['impr.', 'clicks', 'conversions', 'conv. value']
-    for col in numeric_columns:
+    # Print available columns for debugging
+    print("Available columns in DataFrame:", df.columns)
+
+    # Ensure required columns exist before accessing them
+    required_columns = ['impr.', 'clicks', 'conversions', 'conv. value']
+    for col in required_columns:
+        if col not in df.columns:
+            raise KeyError(f"Missing required column: {col}")
+
+    # Convert numeric values
+    for col in required_columns:
         df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
 
     # Convert percentage strings to floats
