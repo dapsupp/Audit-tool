@@ -119,7 +119,7 @@ def run_web_ui():
     st.write("Analyze your Performance Max campaign data efficiently without file size limits.")
     print_expected_csv_format()
     
-    uploaded_file = st.file_uploader("📤 Upload your CSV file", type="csv")
+    uploaded_file = st.file_uploader("📤 Upload your CSV file", type="csv", key="file_uploader")
     
     if uploaded_file:
         with st.spinner("Processing file..."):
@@ -137,7 +137,5 @@ def run_web_ui():
                 st.table(summary_df)
 
 if __name__ == "__main__":
-    run_web_ui()
-
-if __name__ == "__main__":
+    st.cache_data.clear()  # Clear cache to prevent duplicate elements
     run_web_ui()
