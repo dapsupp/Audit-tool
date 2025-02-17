@@ -115,7 +115,7 @@ def process_large_csv(file_path: str, chunk_size: int = 100000) -> Dict[str, flo
 
 def run_web_ui():
     """Creates a web-based interface for uploading a CSV file and processing it in chunks."""
-    st.title("📊 PMax Audit Dashboard - Scalable Version")
+    st.title("📊 PMax Audit Dashboard")
     st.write("Analyze your Performance Max campaign data efficiently without file size limits.")
     print_expected_csv_format()
     
