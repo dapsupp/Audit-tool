@@ -120,12 +120,13 @@ def run_web_ui():
     if uploaded_file:
         with st.spinner("Processing file..."):
             df = pd.read_csv(uploaded_file, skiprows=2)  # Skip first two rows to handle incorrect structure
+            st.write("✅ File uploaded successfully!")
+            st.write("📂 **Preview of Uploaded Data**")
+            st.dataframe(df.head())  # Show preview of the uploaded file
+            
             insights, df_processed = assess_product_performance(df)
             
             if insights:
-                st.write("📂 **Preview of Uploaded Data**")
-                st.dataframe(df_processed.head())
-                
                 create_summary_table(insights)
                 
                 st.download_button(
