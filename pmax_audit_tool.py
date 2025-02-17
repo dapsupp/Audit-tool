@@ -94,6 +94,14 @@ def assess_product_performance(df: pd.DataFrame) -> Tuple[Dict[str, float], pd.D
     
     return insights, df
 
+def create_summary_table(insights: Dict[str, float]) -> None:
+    """Create a summary table with key insights."""
+    summary_df = pd.DataFrame({
+        "Metric": insights.keys(),
+        "Value": insights.values()
+    })
+    st.table(summary_df)
+
 def run_web_ui():
     """Creates a web-based interface for uploading a CSV file."""
     st.title("📊 PMax Audit Tool")
@@ -110,6 +118,7 @@ def run_web_ui():
             if insights:
                 st.write("📂 Preview of Uploaded Data:")
                 st.dataframe(df_processed.head())
+                create_summary_table(insights)
                 
                 st.download_button(
                     label="📥 Download Processed Data",
