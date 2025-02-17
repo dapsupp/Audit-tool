@@ -2,9 +2,18 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.io as pio
 import streamlit as st
-from typing import Tuple, Dict
+import tempfile
+import logging
+from typing import Dict
 
-# Ensure table rendering works correctly
+# Configure logging to file for error tracking
+logging.basicConfig(
+    filename="app.log",
+    level=logging.ERROR,
+    format="%(asctime)s %(levelname)s %(message)s"
+)
+
+# Ensure that table rendering works correctly
 pio.renderers.default = "browser"
 
 def print_expected_csv_format():
@@ -25,23 +34,27 @@ def print_expected_csv_format():
         | 9 | Search Impression Share |
         
         **Ensure that your CSV file follows this format before uploading.**
-        """)
+        """
+    )
 
 def detect_header_row(file_path: str) -> int:
     """Detects the correct header row by scanning the first few lines of the CSV."""
-    with open(file_path, "r", encoding="utf-8") as f:
-        for i, line in enumerate(f):
-            if "Item ID" in line and "Impr." in line:
-                return i  # This row is the actual header
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            for i, line in enumerate(f):
+                if "Item ID" in line and "Impr." in line:
+                    return i  # This row is the actual header
+    except Exception as e:
+        logging.error(f"Error detecting header row: {e}")
     return 0  # Default to first row if no match is found
 
 def process_large_csv(file_path: str, chunk_size: int = 100000) -> Dict[str, float]:
     """Processes large CSV files in chunks, automatically detecting the header row."""
     
-    # Detect correct header row
+    # Detect the correct header row
     header_row = detect_header_row(file_path)
     
-    # Initialize totals
+    # Initialise totals
     total_impressions = 0
     total_clicks = 0
     total_conversions = 0
@@ -58,7 +71,7 @@ def process_large_csv(file_path: str, chunk_size: int = 100000) -> Dict[str, flo
             on_bad_lines="skip", 
             skiprows=header_row
         ):
-            # Normalize column names
+            # Normalise column names
             chunk.columns = chunk.columns.str.strip().str.lower()
             
             # Verify if required columns exist
@@ -69,21 +82,22 @@ def process_large_csv(file_path: str, chunk_size: int = 100000) -> Dict[str, flo
                 st.write("🔍 Detected Columns in Uploaded File:", list(chunk.columns))
                 return {}
             
-            # Clean and convert numeric columns
+            # Clean and convert numeric columns in a vectorised manner
             for col in required_columns:
-                chunk[col] = chunk[col].astype(str).str.replace(",", "").astype(float)
+                chunk[col] = pd.to_numeric(chunk[col].astype(str).str.replace(",", ""), errors='coerce').fillna(0)
             
-            # Calculate ROAS dynamically if missing
-            chunk["roas"] = chunk.apply(lambda row: row["conv. value"] / row["cost"] if row["cost"] > 0 else 0, axis=1)
+            # Calculate ROAS using vectorised operations
+            chunk["roas"] = chunk["conv. value"] / chunk["cost"]
+            chunk.loc[chunk["cost"] <= 0, "roas"] = 0
             
-            # Process Search Impression Share
-            chunk["search impr. share"] = (
-                chunk["search impr. share"]
-                .astype(str)
-                .str.replace("%", "")
-                .replace("--", "")
-                .apply(pd.to_numeric, errors='coerce')
-            )
+            # Process Search Impression Share if present
+            if "search impr. share" in chunk.columns:
+                chunk["search impr. share"] = pd.to_numeric(
+                    chunk["search impr. share"].astype(str).str.replace("%", "").replace("--", ""),
+                    errors='coerce'
+                )
+            else:
+                chunk["search impr. share"] = pd.NA
             
             # Aggregate Metrics
             total_impressions += chunk["impr."].sum()
@@ -94,9 +108,9 @@ def process_large_csv(file_path: str, chunk_size: int = 100000) -> Dict[str, flo
             
             valid_search_chunk = chunk["search impr. share"].dropna()
             total_search_impr_share += valid_search_chunk.sum()
-            valid_search_impr_count += len(valid_search_chunk)
+            valid_search_impr_count += valid_search_chunk.count()
         
-        # Compute Final Metrics
+        # Compute final metrics
         average_roas = total_conversion_value / total_cost if total_cost > 0 else 0
         average_search_impr_share = (total_search_impr_share / valid_search_impr_count) if valid_search_impr_count > 0 else 0
         
@@ -111,31 +125,71 @@ def process_large_csv(file_path: str, chunk_size: int = 100000) -> Dict[str, flo
         }
     except Exception as e:
         st.error(f"Error processing file: {e}")
+        logging.error(f"Error processing CSV file: {e}")
         return {}
+
+def create_metrics_bar_chart(insights: Dict[str, float]) -> go.Figure:
+    """Creates a Plotly bar chart for the summary metrics."""
+    # Visualise total metrics only for the bar chart
+    metrics = {
+        "Total Impressions": insights.get("Total Impressions", 0),
+        "Total Clicks": insights.get("Total Clicks", 0),
+        "Total Conversions": insights.get("Total Conversions", 0),
+        "Total Conversion Value": insights.get("Total Conversion Value", 0),
+        "Total Cost": insights.get("Total Cost", 0)
+    }
+    
+    fig = go.Figure(data=[go.Bar(
+        x=list(metrics.keys()),
+        y=list(metrics.values()),
+        marker_color='indianred'
+    )])
+    
+    fig.update_layout(
+        title="Campaign Performance Metrics",
+        xaxis_title="Metric",
+        yaxis_title="Value",
+        template="plotly_white"
+    )
+    
+    return fig
 
 def run_web_ui():
     """Creates a web-based interface for uploading a CSV file and processing it in chunks."""
     st.title("📊 PMax Audit Dashboard")
-    st.write("Analyze your Performance Max campaign data efficiently without file size limits.")
+    st.write("Analyse your Performance Max campaign data efficiently without file size limits.")
     print_expected_csv_format()
     
     uploaded_file = st.file_uploader("📤 Upload your CSV file", type="csv", key="file_uploader")
     
     if uploaded_file:
         with st.spinner("Processing file..."):
-            # Save uploaded file to a temporary location
-            file_path = "uploaded_data.csv"
-            with open(file_path, "wb") as f:
-                f.write(uploaded_file.getbuffer())
-            
-            # Process the file in chunks
-            insights = process_large_csv(file_path)
-            
-            if insights:
-                st.subheader("📊 Summary Metrics")
-                summary_df = pd.DataFrame({"Metric": insights.keys(), "Value": insights.values()})
-                st.table(summary_df)
+            try:
+                # Use a temporary file for handling the uploaded CSV
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp_file:
+                    tmp_file.write(uploaded_file.getbuffer())
+                    tmp_file_path = tmp_file.name
+                
+                # Process the file in chunks
+                insights = process_large_csv(tmp_file_path)
+                
+                if insights:
+                    st.subheader("📊 Summary Metrics")
+                    summary_df = pd.DataFrame({
+                        "Metric": list(insights.keys()),
+                        "Value": list(insights.values())
+                    })
+                    st.table(summary_df)
+                    
+                    # Display an interactive bar chart using Plotly
+                    st.subheader("📈 Visual Overview")
+                    fig = create_metrics_bar_chart(insights)
+                    st.plotly_chart(fig, use_container_width=True)
+            except Exception as e:
+                st.error(f"An unexpected error occurred: {e}")
+                logging.error(f"Unexpected error in run_web_ui: {e}")
 
 if __name__ == "__main__":
-    st.cache_data.clear()  # Clear cache to prevent duplicate elements
+    # Clear cache to prevent duplicate elements
+    st.cache_data.clear()  
     run_web_ui()
