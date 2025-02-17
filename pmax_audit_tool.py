@@ -49,6 +49,9 @@ def assess_product_performance(df: pd.DataFrame) -> Tuple[Dict[str, float], pd.D
     
     df[numeric_columns] = df[numeric_columns].apply(pd.to_numeric, errors='coerce').fillna(0)
     
+    # Convert 'Search impr. share' to numeric, handling missing values and percentage format
+    df['search impr. share'] = df['search impr. share'].astype(str).replace("--", "0").str.replace("%", "").astype(float) / 100
+    
     total_item_count = df.shape[0]
     df_sorted = df.sort_values(by='conversions', ascending=False)
     df_sorted['cumulative_conversions'] = df_sorted['conversions'].cumsum()
@@ -56,7 +59,7 @@ def assess_product_performance(df: pd.DataFrame) -> Tuple[Dict[str, float], pd.D
     num_products_80 = (df_sorted['cumulative_conversions_percentage'] >= 80).idxmax() + 1
     
     percent_skus_driving_80 = round((num_products_80 / total_item_count) * 100, 2) if total_item_count > 0 else 0
-    avg_search_impr_share = round(df['search impr. share'].mean(skipna=True), 2)
+    avg_search_impr_share = round(df['search impr. share'].mean(skipna=True) * 100, 2)
     
     insights = {
         'total_item_count': total_item_count,
