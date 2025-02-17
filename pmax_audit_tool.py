@@ -28,7 +28,7 @@ def print_expected_csv_format():
 
 def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
     """Ensure column names are formatted correctly."""
-    df.columns = df.columns.str.strip().str.lower().replace(' ', '_')
+    df.columns = df.columns.str.strip().str.lower().str.replace(' ', '_', regex=True)
     rename_map = {
         'item_id': 'item id',
         'impressions': 'impr.',
@@ -104,8 +104,7 @@ def run_web_ui():
             if insights:
                 st.write("📂 Preview of Uploaded Data:")
                 st.dataframe(df_processed.head())
-                create_summary_table(insights)
-            
+                
                 st.download_button(
                     label="📥 Download Processed Data",
                     data=df_processed.to_csv(index=False).encode('utf-8'),
