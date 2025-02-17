@@ -39,50 +39,60 @@ def process_large_csv(file_path: str, chunk_size: int = 100000) -> Dict[str, flo
     total_search_impr_share = 0
     valid_search_impr_count = 0
     
-    for chunk in pd.read_csv(file_path, chunksize=chunk_size):
-        # Clean and convert numeric columns
-        chunk["Impr."] = chunk["Impr."].astype(str).str.replace(",", "").astype(float)
-        chunk["Clicks"] = chunk["Clicks"].astype(str).str.replace(",", "").astype(float)
-        chunk["Conversions"] = chunk["Conversions"].astype(str).str.replace(",", "").astype(float)
-        chunk["Conv. value"] = chunk["Conv. value"].astype(str).str.replace(",", "").astype(float)
-        chunk["Cost"] = chunk["Cost"].astype(str).str.replace(",", "").astype(float)
+    try:
+        for chunk in pd.read_csv(
+            file_path, 
+            chunksize=chunk_size, 
+            encoding="utf-8", 
+            error_bad_lines=False, 
+            on_bad_lines="skip"
+        ):
+            # Clean and convert numeric columns
+            chunk = chunk.dropna(how='all')  # Drop completely empty rows
+            
+            required_columns = ["Impr.", "Clicks", "Conversions", "Conv. value", "Cost"]
+            for col in required_columns:
+                chunk[col] = chunk[col].astype(str).str.replace(",", "").astype(float)
+            
+            # Calculate ROAS dynamically if missing
+            chunk["ROAS"] = chunk.apply(lambda row: row["Conv. value"] / row["Cost"] if row["Cost"] > 0 else 0, axis=1)
+            
+            # Process Search Impression Share
+            chunk["Search impr. share"] = (
+                chunk["Search impr. share"]
+                .astype(str)
+                .str.replace("%", "")
+                .replace("--", "")
+                .apply(pd.to_numeric, errors='coerce')
+            )
+            
+            # Aggregate Metrics
+            total_impressions += chunk["Impr."].sum()
+            total_clicks += chunk["Clicks"].sum()
+            total_conversions += chunk["Conversions"].sum()
+            total_conversion_value += chunk["Conv. value"].sum()
+            total_cost += chunk["Cost"].sum()
+            
+            valid_search_chunk = chunk["Search impr. share"].dropna()
+            total_search_impr_share += valid_search_chunk.sum()
+            valid_search_impr_count += len(valid_search_chunk)
         
-        # Calculate ROAS dynamically if missing
-        chunk["ROAS"] = chunk.apply(lambda row: row["Conv. value"] / row["Cost"] if row["Cost"] > 0 else 0, axis=1)
+        # Compute Final Metrics
+        average_roas = total_conversion_value / total_cost if total_cost > 0 else 0
+        average_search_impr_share = (total_search_impr_share / valid_search_impr_count) if valid_search_impr_count > 0 else 0
         
-        # Process Search Impression Share
-        chunk["Search impr. share"] = (
-            chunk["Search impr. share"]
-            .astype(str)
-            .str.replace("%", "")
-            .replace("--", "")
-            .apply(pd.to_numeric, errors='coerce')
-        )
-        
-        # Aggregate Metrics
-        total_impressions += chunk["Impr."].sum()
-        total_clicks += chunk["Clicks"].sum()
-        total_conversions += chunk["Conversions"].sum()
-        total_conversion_value += chunk["Conv. value"].sum()
-        total_cost += chunk["Cost"].sum()
-        
-        valid_search_chunk = chunk["Search impr. share"].dropna()
-        total_search_impr_share += valid_search_chunk.sum()
-        valid_search_impr_count += len(valid_search_chunk)
-    
-    # Compute Final Metrics
-    average_roas = total_conversion_value / total_cost if total_cost > 0 else 0
-    average_search_impr_share = (total_search_impr_share / valid_search_impr_count) if valid_search_impr_count > 0 else 0
-    
-    return {
-        "Total Impressions": total_impressions,
-        "Total Clicks": total_clicks,
-        "Total Conversions": total_conversions,
-        "Total Conversion Value": total_conversion_value,
-        "Total Cost": total_cost,
-        "Average ROAS": round(average_roas, 2),
-        "Average Search Impression Share": round(average_search_impr_share, 2)
-    }
+        return {
+            "Total Impressions": total_impressions,
+            "Total Clicks": total_clicks,
+            "Total Conversions": total_conversions,
+            "Total Conversion Value": total_conversion_value,
+            "Total Cost": total_cost,
+            "Average ROAS": round(average_roas, 2),
+            "Average Search Impression Share": round(average_search_impr_share, 2)
+        }
+    except Exception as e:
+        st.error(f"Error processing file: {e}")
+        return {}
 
 def run_web_ui():
     """Creates a web-based interface for uploading a CSV file and processing it in chunks."""
