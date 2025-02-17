@@ -12,7 +12,7 @@ def run_web_ui():
     if uploaded_file:
         with st.spinner("Processing file..."):
             try:
-                df = pd.read_csv(uploaded_file, delimiter=",", skiprows=2, error_bad_lines=False)
+                df = pd.read_csv(uploaded_file, delimiter=",", skiprows=2, on_bad_lines="skip")
                 insights, df_processed = assess_product_performance(df)
 
                 if insights:
