@@ -3,7 +3,7 @@ import pandas as pd
 def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
     """Ensure column names are formatted correctly."""
     df.columns = df.columns.str.strip().str.lower().str.replace(' ', '_', regex=True)
-    
+
     rename_map = {
         'item_id': 'item id',
         'impressions': 'impr.',
@@ -20,15 +20,15 @@ def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
 def assess_product_performance(df: pd.DataFrame):
     """Assess product-level performance in Google PMAX campaigns."""
     df = clean_column_names(df)
-    
+
     numeric_columns = ['impr.', 'clicks', 'conversions', 'conv. value']
     for col in numeric_columns:
         df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
 
-    # Fix percentage values
+    # Convert percentage strings to floats
     if 'ctr' in df.columns:
         df['ctr'] = df['ctr'].str.rstrip('%').astype(float) / 100
-    
+
     insights = {
         'total_item_count': df.shape[0],
         'total_impressions': df['impr.'].sum(),
