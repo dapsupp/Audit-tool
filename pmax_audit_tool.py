@@ -44,7 +44,6 @@ def process_large_csv(file_path: str, chunk_size: int = 100000) -> Dict[str, flo
             file_path, 
             chunksize=chunk_size, 
             encoding="utf-8", 
-            error_bad_lines=False, 
             on_bad_lines="skip"
         ):
             # Clean and convert numeric columns
