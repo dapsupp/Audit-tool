@@ -27,25 +27,19 @@ def print_expected_csv_format():
         **Ensure that your CSV file follows this format before uploading.**
         """)
 
-def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
-    """Normalize column names by stripping spaces and converting to lowercase."""
-    df.columns = df.columns.str.strip().str.lower()
-    rename_map = {
-        'item id': 'Item ID',
-        'impr.': 'Impr.',
-        'clicks': 'Clicks',
-        'ctr': 'CTR',
-        'conversions': 'Conversions',
-        'conv. value': 'Conv. value',
-        'cost': 'Cost',
-        'conv. value / cost': 'ROAS',
-        'search impr. share': 'Search impr. share'
-    }
-    df.rename(columns=rename_map, inplace=True, errors='ignore')
-    return df
+def detect_header_row(file_path: str) -> int:
+    """Detects the correct header row by scanning the first few lines of the CSV."""
+    with open(file_path, "r", encoding="utf-8") as f:
+        for i, line in enumerate(f):
+            if "Item ID" in line and "Impr." in line:
+                return i  # This row is the actual header
+    return 0  # Default to first row if no match is found
 
 def process_large_csv(file_path: str, chunk_size: int = 100000) -> Dict[str, float]:
-    """Processes large CSV files in chunks to avoid memory constraints."""
+    """Processes large CSV files in chunks, automatically detecting the header row."""
+    
+    # Detect correct header row
+    header_row = detect_header_row(file_path)
     
     # Initialize totals
     total_impressions = 0
@@ -61,13 +55,14 @@ def process_large_csv(file_path: str, chunk_size: int = 100000) -> Dict[str, flo
             file_path, 
             chunksize=chunk_size, 
             encoding="utf-8", 
-            on_bad_lines="skip"
+            on_bad_lines="skip", 
+            skiprows=header_row
         ):
             # Normalize column names
-            chunk = clean_column_names(chunk)
+            chunk.columns = chunk.columns.str.strip().str.lower()
             
             # Verify if required columns exist
-            required_columns = ["Impr.", "Clicks", "Conversions", "Conv. value", "Cost"]
+            required_columns = ["impr.", "clicks", "conversions", "conv. value", "cost"]
             missing_columns = [col for col in required_columns if col not in chunk.columns]
             if missing_columns:
                 st.error(f"❌ Missing expected columns: {', '.join(missing_columns)}")
@@ -79,11 +74,11 @@ def process_large_csv(file_path: str, chunk_size: int = 100000) -> Dict[str, flo
                 chunk[col] = chunk[col].astype(str).str.replace(",", "").astype(float)
             
             # Calculate ROAS dynamically if missing
-            chunk["ROAS"] = chunk.apply(lambda row: row["Conv. value"] / row["Cost"] if row["Cost"] > 0 else 0, axis=1)
+            chunk["roas"] = chunk.apply(lambda row: row["conv. value"] / row["cost"] if row["cost"] > 0 else 0, axis=1)
             
             # Process Search Impression Share
-            chunk["Search impr. share"] = (
-                chunk["Search impr. share"]
+            chunk["search impr. share"] = (
+                chunk["search impr. share"]
                 .astype(str)
                 .str.replace("%", "")
                 .replace("--", "")
@@ -91,13 +86,13 @@ def process_large_csv(file_path: str, chunk_size: int = 100000) -> Dict[str, flo
             )
             
             # Aggregate Metrics
-            total_impressions += chunk["Impr."].sum()
-            total_clicks += chunk["Clicks"].sum()
-            total_conversions += chunk["Conversions"].sum()
-            total_conversion_value += chunk["Conv. value"].sum()
-            total_cost += chunk["Cost"].sum()
+            total_impressions += chunk["impr."].sum()
+            total_clicks += chunk["clicks"].sum()
+            total_conversions += chunk["conversions"].sum()
+            total_conversion_value += chunk["conv. value"].sum()
+            total_cost += chunk["cost"].sum()
             
-            valid_search_chunk = chunk["Search impr. share"].dropna()
+            valid_search_chunk = chunk["search impr. share"].dropna()
             total_search_impr_share += valid_search_chunk.sum()
             valid_search_impr_count += len(valid_search_chunk)
         
@@ -140,6 +135,9 @@ def run_web_ui():
                 st.subheader("📊 Summary Metrics")
                 summary_df = pd.DataFrame({"Metric": insights.keys(), "Value": insights.values()})
                 st.table(summary_df)
+
+if __name__ == "__main__":
+    run_web_ui()
 
 if __name__ == "__main__":
     run_web_ui()
