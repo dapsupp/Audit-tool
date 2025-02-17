@@ -47,28 +47,34 @@ def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
     df.rename(columns=rename_map, inplace=True)
     return df
 
+def process_search_impr_share(df: pd.DataFrame) -> pd.DataFrame:
+    """Cleans and processes the Search Impression Share column."""
+    if 'Search impr. share' in df.columns:
+        df['Search impr. share'] = (
+            df['Search impr. share']
+            .astype(str)
+            .str.replace("%", "", regex=True)
+            .str.strip()
+            .replace("--", "0")
+            .apply(lambda x: pd.to_numeric(x, errors='coerce'))
+            .fillna(0) / 100
+        )
+    return df
+
 def assess_product_performance(df: pd.DataFrame) -> Tuple[Dict[str, float], pd.DataFrame]:
     """Assess product-level performance in Google PMAX campaigns."""
     df = clean_column_names(df)
+    df = process_search_impr_share(df)
     
     numeric_columns = ['Impr.', 'Clicks', 'Conversions', 'Conv. value', 'Conv. value / cost', 'Search impr. share']
     missing_columns = [col for col in ['Item ID'] + numeric_columns if col not in df.columns]
     
     if missing_columns:
         st.error(f"❌ Missing columns in uploaded file: {', '.join(missing_columns)}")
-        st.write("🔍 Detected Columns in Uploaded File:", df.columns.tolist())  # Debugging line
-        return None, None  # Stop execution if critical columns are missing
+        st.write("🔍 Detected Columns in Uploaded File:", df.columns.tolist())
+        return None, None
     
     df[numeric_columns] = df[numeric_columns].apply(pd.to_numeric, errors='coerce').fillna(0)
-    
-    df['Search impr. share'] = (
-        df['Search impr. share']
-        .astype(str)
-        .str.replace("%", "", regex=True)
-        .replace("--", "0")
-        .apply(lambda x: pd.to_numeric(x, errors='coerce') / 100 if x != '' else 0)
-        .fillna(0)
-    )
     
     total_item_count = df.shape[0]
     df_sorted = df.sort_values(by='Conversions', ascending=False)
@@ -128,4 +134,3 @@ def run_web_ui():
 
 if __name__ == "__main__":
     run_web_ui()
-
