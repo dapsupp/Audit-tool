@@ -57,8 +57,10 @@ def process_search_impr_share(df: pd.DataFrame) -> pd.DataFrame:
             .str.strip()
             .replace("--", "0")
             .apply(lambda x: pd.to_numeric(x, errors='coerce'))
-            .fillna(0) / 100
-        )
+            .fillna(0)
+        ) / 100
+    print("Processed Search Impression Share Values:")
+    print(df[['Item ID', 'Search impr. share']].head())  # Debugging print
     return df
 
 def assess_product_performance(df: pd.DataFrame) -> Tuple[Dict[str, float], pd.DataFrame]:
@@ -85,6 +87,10 @@ def assess_product_performance(df: pd.DataFrame) -> Tuple[Dict[str, float], pd.D
     impressions_sum = df['Impr.'].sum()
     average_ctr = round(df['Clicks'].sum() / impressions_sum * 100, 2) if impressions_sum else 0
     
+    search_impr_share_values = df['Search impr. share'].dropna()
+    actual_avg_search_impr_share = round(search_impr_share_values.mean() * 100, 2)
+    print(f"Debug - Expected Average Search Impression Share: {actual_avg_search_impr_share}%")
+    
     insights = {
         'Total SKUs': total_item_count,
         'Total Impressions': int(df['Impr.'].sum()),
@@ -95,42 +101,7 @@ def assess_product_performance(df: pd.DataFrame) -> Tuple[Dict[str, float], pd.D
         'Average ROAS': round(df['Conv. value / cost'].mean(), 2),
         'SKUs Driving 80% of Sales': num_products_80,
         'Percentage of SKUs Driving 80% of Sales': f"{round((num_products_80 / total_item_count) * 100, 2)}%" if total_item_count > 0 else "0%",
-        'Average Search Impression Share': f"{round(df['Search impr. share'].mean(skipna=True) * 100, 2)}%"
+        'Average Search Impression Share': f"{actual_avg_search_impr_share}%"
     }
     
     return insights, df
-
-def create_summary_table(insights: Dict[str, float]) -> None:
-    """Create a summary table with key insights."""
-    st.subheader("📊 Summary Metrics")
-    summary_df = pd.DataFrame({"Metric": insights.keys(), "Value": insights.values()})
-    st.table(summary_df)
-
-def run_web_ui():
-    """Creates a web-based interface for uploading a CSV file."""
-    st.title("📊 PMax Audit Dashboard")
-    st.write("Analyze your Performance Max campaign data with clear insights and reporting.")
-    print_expected_csv_format()
-    
-    uploaded_file = st.file_uploader("📤 Upload your CSV file", type="csv")
-    
-    if uploaded_file:
-        with st.spinner("Processing file..."):
-            df = pd.read_csv(uploaded_file, skiprows=2)  # Skip first two rows to handle incorrect structure
-            insights, df_processed = assess_product_performance(df)
-            
-            if insights:
-                st.write("📂 **Preview of Uploaded Data**")
-                st.dataframe(df_processed.head())
-                
-                create_summary_table(insights)
-                
-                st.download_button(
-                    label="📥 Download Processed Data",
-                    data=df_processed.to_csv(index=False).encode('utf-8'),
-                    file_name="processed_data.csv",
-                    mime="text/csv"
-                )
-
-if __name__ == "__main__":
-    run_web_ui()
