@@ -27,6 +27,23 @@ def print_expected_csv_format():
         **Ensure that your CSV file follows this format before uploading.**
         """)
 
+def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
+    """Normalize column names by stripping spaces and converting to lowercase."""
+    df.columns = df.columns.str.strip().str.lower()
+    rename_map = {
+        'item id': 'Item ID',
+        'impr.': 'Impr.',
+        'clicks': 'Clicks',
+        'ctr': 'CTR',
+        'conversions': 'Conversions',
+        'conv. value': 'Conv. value',
+        'cost': 'Cost',
+        'conv. value / cost': 'ROAS',
+        'search impr. share': 'Search impr. share'
+    }
+    df.rename(columns=rename_map, inplace=True, errors='ignore')
+    return df
+
 def process_large_csv(file_path: str, chunk_size: int = 100000) -> Dict[str, float]:
     """Processes large CSV files in chunks to avoid memory constraints."""
     
@@ -46,10 +63,18 @@ def process_large_csv(file_path: str, chunk_size: int = 100000) -> Dict[str, flo
             encoding="utf-8", 
             on_bad_lines="skip"
         ):
-            # Clean and convert numeric columns
-            chunk = chunk.dropna(how='all')  # Drop completely empty rows
+            # Normalize column names
+            chunk = clean_column_names(chunk)
             
+            # Verify if required columns exist
             required_columns = ["Impr.", "Clicks", "Conversions", "Conv. value", "Cost"]
+            missing_columns = [col for col in required_columns if col not in chunk.columns]
+            if missing_columns:
+                st.error(f"❌ Missing expected columns: {', '.join(missing_columns)}")
+                st.write("🔍 Detected Columns in Uploaded File:", list(chunk.columns))
+                return {}
+            
+            # Clean and convert numeric columns
             for col in required_columns:
                 chunk[col] = chunk[col].astype(str).str.replace(",", "").astype(float)
             
