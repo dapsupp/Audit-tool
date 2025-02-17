@@ -11,9 +11,9 @@ def print_expected_csv_format():
     """Displays the expected CSV format for the user."""
     st.markdown(
         """
-        🔹 **Expected CSV Column Order:**
+        ## 🔹 Expected CSV Column Order
         | # | Column |
-        |---|--------|
+        |---|------------------------------|
         | 1 | Item ID |
         | 2 | Impressions (Impr.) |
         | 3 | Clicks |
@@ -80,35 +80,33 @@ def assess_product_performance(df: pd.DataFrame) -> Tuple[Dict[str, float], pd.D
     average_ctr = round(df['Clicks'].sum() / impressions_sum * 100, 2) if impressions_sum else 0
     
     insights = {
-        'total_item_count': total_item_count,
-        'total_impressions': int(df['Impr.'].sum()),
-        'total_clicks': int(df['Clicks'].sum()),
-        'average_ctr': average_ctr,
-        'total_conversions': int(df['Conversions'].sum()),
-        'total_conversion_value': round(df['Conv. value'].sum(), 2),
-        'average_roas': round(df['Conv. value / cost'].mean(), 2),
-        'num_products_80': num_products_80,
-        'percent_skus_driving_80': round((num_products_80 / total_item_count) * 100, 2) if total_item_count > 0 else 0,
-        'average_search_impr_share': round(df['Search impr. share'].mean(skipna=True) * 100, 2)
+        'Total SKUs': total_item_count,
+        'Total Impressions': int(df['Impr.'].sum()),
+        'Total Clicks': int(df['Clicks'].sum()),
+        'Average CTR': f"{average_ctr:.2f}%",
+        'Total Conversions': int(df['Conversions'].sum()),
+        'Total Conversion Value': f"£{df['Conv. value'].sum():,.2f}",
+        'Average ROAS': round(df['Conv. value / cost'].mean(), 2),
+        'SKUs Driving 80% of Sales': num_products_80,
+        'Percentage of SKUs Driving 80% of Sales': f"{round((num_products_80 / total_item_count) * 100, 2)}%" if total_item_count > 0 else "0%",
+        'Average Search Impression Share': f"{round(df['Search impr. share'].mean(skipna=True) * 100, 2)}%"
     }
     
     return insights, df
 
 def create_summary_table(insights: Dict[str, float]) -> None:
     """Create a summary table with key insights."""
-    summary_df = pd.DataFrame({
-        "Metric": insights.keys(),
-        "Value": insights.values()
-    })
+    st.subheader("📊 Summary Metrics")
+    summary_df = pd.DataFrame({"Metric": insights.keys(), "Value": insights.values()})
     st.table(summary_df)
 
 def run_web_ui():
     """Creates a web-based interface for uploading a CSV file."""
-    st.title("📊 PMax Audit Tool")
-    st.write("Upload your CSV file below to analyze Performance Max campaign data.")
+    st.title("📊 PMax Audit Dashboard")
+    st.write("Analyze your Performance Max campaign data with clear insights and reporting.")
     print_expected_csv_format()
     
-    uploaded_file = st.file_uploader("Upload your CSV file", type="csv")
+    uploaded_file = st.file_uploader("📤 Upload your CSV file", type="csv")
     
     if uploaded_file:
         with st.spinner("Processing file..."):
@@ -116,8 +114,9 @@ def run_web_ui():
             insights, df_processed = assess_product_performance(df)
             
             if insights:
-                st.write("📂 Preview of Uploaded Data:")
+                st.write("📂 **Preview of Uploaded Data**")
                 st.dataframe(df_processed.head())
+                
                 create_summary_table(insights)
                 
                 st.download_button(
