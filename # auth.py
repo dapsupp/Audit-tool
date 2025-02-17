@@ -1,12 +1,16 @@
-import streamlit as st
 import streamlit_authenticator as stauth
+import streamlit as st
 
 def get_authenticator():
+    """
+    Handles authentication using Streamlit Authenticator.
+    - Fixes outdated `.generate()` method issue.
+    """
     names = ["Staff One", "Staff Two"]
     usernames = ["staff1", "staff2"]
     passwords = ["password1", "password2"]
 
-    # Correct hashing method
+    # Correct method for hashing passwords
     hashed_passwords = stauth.Hasher(passwords).generate_hashes()
 
     credentials = {
