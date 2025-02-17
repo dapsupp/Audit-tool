@@ -20,122 +20,92 @@ def print_expected_csv_format():
         | 4 | Click-Through Rate (CTR) |
         | 5 | Conversions |
         | 6 | Conversion Value (Conv. value) |
-        | 7 | Conversion Value / Cost (Conv. value / cost) |
-        | 8 | Search Impression Share |
+        | 7 | Cost |
+        | 8 | Conversion Value / Cost (ROAS) |
+        | 9 | Search Impression Share |
         
         **Ensure that your CSV file follows this format before uploading.**
         """)
 
-def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
-    """Ensure column names are formatted correctly."""
-    df.columns = (
-        df.columns
-        .str.strip()  # Remove leading/trailing spaces
-        .str.lower()  # Convert to lowercase
-        .str.replace(r'\s+', ' ', regex=True)  # Replace multiple spaces with a single space
-    )
-    rename_map = {
-        'item id': 'Item ID',
-        'impr.': 'Impr.',
-        'clicks': 'Clicks',
-        'ctr': 'CTR',
-        'conversions': 'Conversions',
-        'conv. value': 'Conv. value',
-        'conv. value / cost': 'Conv. value / cost',
-        'search impr. share': 'Search impr. share'
-    }
-    df.rename(columns=rename_map, inplace=True)
-    return df
-
-def process_search_impr_share(df: pd.DataFrame) -> pd.DataFrame:
-    """Cleans and processes the Search Impression Share column."""
-    if 'Search impr. share' in df.columns:
-        df['Search impr. share'] = (
-            df['Search impr. share']
+def process_large_csv(file_path: str, chunk_size: int = 100000) -> Dict[str, float]:
+    """Processes large CSV files in chunks to avoid memory constraints."""
+    
+    # Initialize totals
+    total_impressions = 0
+    total_clicks = 0
+    total_conversions = 0
+    total_conversion_value = 0
+    total_cost = 0
+    total_search_impr_share = 0
+    valid_search_impr_count = 0
+    
+    for chunk in pd.read_csv(file_path, chunksize=chunk_size):
+        # Clean and convert numeric columns
+        chunk["Impr."] = chunk["Impr."].astype(str).str.replace(",", "").astype(float)
+        chunk["Clicks"] = chunk["Clicks"].astype(str).str.replace(",", "").astype(float)
+        chunk["Conversions"] = chunk["Conversions"].astype(str).str.replace(",", "").astype(float)
+        chunk["Conv. value"] = chunk["Conv. value"].astype(str).str.replace(",", "").astype(float)
+        chunk["Cost"] = chunk["Cost"].astype(str).str.replace(",", "").astype(float)
+        
+        # Calculate ROAS dynamically if missing
+        chunk["ROAS"] = chunk.apply(lambda row: row["Conv. value"] / row["Cost"] if row["Cost"] > 0 else 0, axis=1)
+        
+        # Process Search Impression Share
+        chunk["Search impr. share"] = (
+            chunk["Search impr. share"]
             .astype(str)
-            .str.replace("%", "", regex=True)
-            .str.strip()
-            .replace("--", "0")  # Replace missing values with zero
-            .apply(lambda x: pd.to_numeric(x, errors='coerce'))  # Convert to float
+            .str.replace("%", "")
+            .replace("--", "")
+            .apply(pd.to_numeric, errors='coerce')
         )
         
-        # If the values are already percentages (above 1.0), do NOT divide by 100
-        df['Search impr. share'] = df['Search impr. share'].apply(
-            lambda x: x / 100 if x > 1 else x
-        ).fillna(0)
+        # Aggregate Metrics
+        total_impressions += chunk["Impr."].sum()
+        total_clicks += chunk["Clicks"].sum()
+        total_conversions += chunk["Conversions"].sum()
+        total_conversion_value += chunk["Conv. value"].sum()
+        total_cost += chunk["Cost"].sum()
+        
+        valid_search_chunk = chunk["Search impr. share"].dropna()
+        total_search_impr_share += valid_search_chunk.sum()
+        valid_search_impr_count += len(valid_search_chunk)
     
-    return df
-
-def assess_product_performance(df: pd.DataFrame) -> Tuple[Dict[str, float], pd.DataFrame]:
-    """Assess product-level performance in Google PMAX campaigns."""
-    df = clean_column_names(df)
-    df = process_search_impr_share(df)
+    # Compute Final Metrics
+    average_roas = total_conversion_value / total_cost if total_cost > 0 else 0
+    average_search_impr_share = (total_search_impr_share / valid_search_impr_count) if valid_search_impr_count > 0 else 0
     
-    numeric_columns = ['Impr.', 'Clicks', 'Conversions', 'Conv. value', 'Conv. value / cost', 'Search impr. share']
-    missing_columns = [col for col in ['Item ID'] + numeric_columns if col not in df.columns]
-    
-    if missing_columns:
-        st.error(f"❌ Missing columns in uploaded file: {', '.join(missing_columns)}")
-        st.write("🔍 Detected Columns in Uploaded File:", df.columns.tolist())
-        return None, None
-    
-    df[numeric_columns] = df[numeric_columns].apply(pd.to_numeric, errors='coerce').fillna(0)
-    
-    total_item_count = df.shape[0]
-    df_sorted = df.sort_values(by='Conversions', ascending=False)
-    df_sorted['Cumulative_Conversions'] = df_sorted['Conversions'].cumsum()
-    df_sorted['Cumulative_Conversions_Percentage'] = (df_sorted['Cumulative_Conversions'] / df_sorted['Conversions'].sum()) * 100
-    num_products_80 = df_sorted[df_sorted['Cumulative_Conversions_Percentage'] >= 80].shape[0]
-    
-    impressions_sum = df['Impr.'].sum()
-    average_ctr = round(df['Clicks'].sum() / impressions_sum * 100, 2) if impressions_sum else 0
-    
-    search_impr_share_values = df['Search impr. share'].dropna()
-    actual_avg_search_impr_share = round(search_impr_share_values.mean() * 100, 2)  # Keep precision
-    
-    insights = {
-        'Total SKUs': total_item_count,
-        'Total Impressions': int(df['Impr.'].sum()),
-        'Total Clicks': int(df['Clicks'].sum()),
-        'Average CTR': f"{average_ctr:.2f}%",
-        'Total Conversions': int(df['Conversions'].sum()),
-        'Total Conversion Value': f"£{df['Conv. value'].sum():,.2f}",
-        'Average ROAS': round(df['Conv. value / cost'].mean(), 2),
-        'SKUs Driving 80% of Sales': num_products_80,
-        'Percentage of SKUs Driving 80% of Sales': f"{round((num_products_80 / total_item_count) * 100, 2)}%" if total_item_count > 0 else "0%",
-        'Average Search Impression Share': f"{actual_avg_search_impr_share}%"
+    return {
+        "Total Impressions": total_impressions,
+        "Total Clicks": total_clicks,
+        "Total Conversions": total_conversions,
+        "Total Conversion Value": total_conversion_value,
+        "Total Cost": total_cost,
+        "Average ROAS": round(average_roas, 2),
+        "Average Search Impression Share": round(average_search_impr_share, 2)
     }
-    
-    return insights, df
 
 def run_web_ui():
-    """Creates a web-based interface for uploading a CSV file."""
-    st.title("📊 PMax Audit Dashboard")
-    st.write("Analyze your Performance Max campaign data with clear insights and reporting.")
+    """Creates a web-based interface for uploading a CSV file and processing it in chunks."""
+    st.title("📊 PMax Audit Dashboard - Scalable Version")
+    st.write("Analyze your Performance Max campaign data efficiently without file size limits.")
     print_expected_csv_format()
     
     uploaded_file = st.file_uploader("📤 Upload your CSV file", type="csv")
     
     if uploaded_file:
         with st.spinner("Processing file..."):
-            df = pd.read_csv(uploaded_file, skiprows=2)  # Skip first two rows to handle incorrect structure
-            st.write("✅ File uploaded successfully!")
-            st.write("📂 **Full Uploaded Data Preview**")
-            st.dataframe(df, height=500)  # Display full dataset with scrollable table
+            # Save uploaded file to a temporary location
+            file_path = "uploaded_data.csv"
+            with open(file_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
             
-            insights, df_processed = assess_product_performance(df)
+            # Process the file in chunks
+            insights = process_large_csv(file_path)
             
             if insights:
                 st.subheader("📊 Summary Metrics")
                 summary_df = pd.DataFrame({"Metric": insights.keys(), "Value": insights.values()})
                 st.table(summary_df)
-                
-                st.download_button(
-                    label="📥 Download Processed Data",
-                    data=df_processed.to_csv(index=False).encode('utf-8'),
-                    file_name="processed_data.csv",
-                    mime="text/csv"
-                )
 
 if __name__ == "__main__":
     run_web_ui()
