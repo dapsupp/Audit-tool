@@ -3,3 +3,4 @@ pandas
 plotly
 streamlit-authenticator>=0.2.0
 plotly==6.0.0
+thefuzz
