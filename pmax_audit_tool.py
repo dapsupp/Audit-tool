@@ -17,6 +17,9 @@ def run_web_ui():
     st.title("📊 PMax Audit Tool")
     st.write("Upload your CSV file below to analyze Performance Max campaigns.")
 
+    # **New UI Message**
+    st.warning("⚠️ **Please ensure your CSV column headers are placed in row 1 before uploading.**")
+
     uploaded_file = st.file_uploader("📤 Upload your CSV file", type="csv", key="file_uploader_1")
 
     if uploaded_file:
