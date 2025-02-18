@@ -1,3 +1,8 @@
+import pandas as pd 
+import difflib
+import logging
+from thefuzz import process
+
 def assess_product_performance(df: pd.DataFrame):
     """
     Processes Google PMAX campaign data:
