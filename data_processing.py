@@ -1,64 +1,3 @@
-import pandas as pd
-import difflib
-import logging
-
-# Configure logging
-logging.basicConfig(
-    filename="data_processing.log", 
-    level=logging.INFO, 
-    format="%(asctime)s - %(levelname)s - %(message)s"
-)
-
-# Enterprise-ready expected column mappings
-EXPECTED_COLUMNS = {
-    'item_id': 'item_id',
-    'impressions': 'impr.',
-    'clicks': 'clicks',
-    'ctr': 'ctr',
-    'conversions': 'conversions',
-    'conversion_value': 'conv_value',
-    'conv. value': 'conv_value',  
-    'conversion value': 'conv_value',
-    'conversion_value_/_cost': 'conv_value_cost',
-    'conversion value / cost': 'conv_value_cost',
-    'search impression share': 'search_impr_share',
-    'search_impression_share': 'search_impr_share',
-    'search impr. share': 'search_impr_share'
-}
-
-def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Enterprise-Grade Column Cleaner:
-    - Converts all column names to lowercase
-    - Removes extra spaces & replaces special characters with underscores
-    - Uses fuzzy logic to match any column variation
-    """
-    df.columns = df.columns.str.strip().str.lower().str.replace(r'\s+', '_', regex=True)
-
-    # Intelligent column mapping
-    renamed_columns = {}
-    for col in df.columns:
-        closest_match = difflib.get_close_matches(col, EXPECTED_COLUMNS.keys(), n=1, cutoff=0.7)
-        if closest_match:
-            new_name = EXPECTED_COLUMNS[closest_match[0]]
-            renamed_columns[col] = new_name
-        else:
-            renamed_columns[col] = col  # Keep column unchanged if no match
-
-    df.rename(columns=renamed_columns, inplace=True)
-    logging.info(f"✅ Column Mapping Applied: {renamed_columns}")
-
-    return df
-
-def validate_columns(df: pd.DataFrame) -> list:
-    """
-    Ensures all required columns exist post-cleaning. Prevents duplicates.
-    """
-    required_columns = list(set(EXPECTED_COLUMNS.values()))
-    missing_columns = [col for col in required_columns if col not in df.columns]
-
-    return missing_columns
-
 def assess_product_performance(df: pd.DataFrame):
     """
     Fully optimized processing of Google PMAX campaign data:
@@ -95,8 +34,6 @@ def assess_product_performance(df: pd.DataFrame):
     }
 
     logging.info("✅ Successfully processed data insights")
-    return insights, df
-    }
+    return insights, df  # <-- Keep this return statement, remove extra closing brace
 
-    logging.info("Successfully processed data insights")
-    return insights, df
+# ✅ REMOVE THE EXTRA CLOSING BRACE HERE (which was after return insights, df)
