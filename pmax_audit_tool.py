@@ -18,7 +18,7 @@ def run_web_ui():
     st.write("Upload your CSV file below to analyze Performance Max campaigns.")
 
     # **New UI Message**
-    st.warning("⚠️ **Please ensure your CSV column headers are placed in row 1 before uploading.**")
+    st.warning("⚠️ **Ensure your CSV column headers are in row 1 and all numbers are formatted correctly.**")
 
     uploaded_file = st.file_uploader("📤 Upload your CSV file", type="csv", key="file_uploader_1")
 
@@ -39,15 +39,18 @@ def run_web_ui():
 
                 if insights:
                     st.subheader("📊 Summary Metrics")
-                    summary_df = pd.DataFrame([insights])
 
-                    st.dataframe(summary_df.style.format({
-                        "total_conversion_value": "£{:.2f}",
-                        "average_ctr": "{:.2f}%",
-                        "average_roas": "{:.2f}"
-                    }).set_properties(
-                        **{"background-color": "#f9f9f9", "color": "black", "border-color": "black"}
-                    ))
+                    # Ensure values are correctly formatted as numbers before display
+                    summary_df = pd.DataFrame([{
+                        "Total Items": insights["total_item_count"],
+                        "Total Impressions": f"{insights['total_impressions']:,}",
+                        "Total Clicks": f"{insights['total_clicks']:,}",
+                        "Average CTR": f"{insights['average_ctr']:.2f}%",
+                        "Total Conversions": f"{insights['total_conversions']:,}",
+                        "Total Conversion Value": f"£{insights['total_conversion_value']:.2f}"
+                    }])
+
+                    st.dataframe(summary_df)
 
                     st.subheader("📂 Processed Data Preview")
                     st.dataframe(df_processed, height=600)
