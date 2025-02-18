@@ -9,7 +9,9 @@ def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
     - Stripping whitespace
     - Converting to lowercase
     - Replacing spaces and dots with underscores
+    - Mapping common abbreviations to expected names
     """
+    # Standardise column names
     df.columns = (
         df.columns
         .str.strip()
@@ -17,6 +19,17 @@ def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
         .str.replace(' ', '_')
         .str.replace('.', '_')
     )
+    
+    # Mapping dictionary: key is the cleaned column name, value is the required name
+    rename_mapping = {
+        'impr_': 'impressions',
+        'conv__value': 'conversion_value',
+        'conv__value___cost': 'conversion_value_cost',
+    }
+    
+    # Rename columns based on the mapping
+    df.rename(columns=rename_mapping, inplace=True)
+    
     return df
 
 def validate_columns(df: pd.DataFrame) -> list:
@@ -24,13 +37,13 @@ def validate_columns(df: pd.DataFrame) -> list:
     Validates that the required columns exist in the DataFrame.
     If any required columns are missing, returns a list of them.
     """
-    # Define the mapping of expected column names after cleaning to what we need in the analysis.
+    # Define the required columns for analysis
     required_columns = ['impressions', 'clicks', 'ctr', 'conversions', 'conversion_value', 'conversion_value_cost']
     
     missing = []
     for col in required_columns:
         if col not in df.columns:
-            # Try to find close matches using difflib (optional)
+            # Optionally, find close matches for guidance
             close_matches = difflib.get_close_matches(col, df.columns)
             if close_matches:
                 logging.warning(f"Column '{col}' not found, but found close match: {close_matches[0]}. Consider renaming.")
@@ -46,7 +59,7 @@ def assess_product_performance(df: pd.DataFrame):
     - Converts numeric fields safely
     - Provides business insights
     """
-    # Clean the column names so that we can work with a standardised DataFrame
+    # Clean and standardise column names
     df = clean_column_names(df)
     
     # Validate that the necessary columns are present
