@@ -45,11 +45,13 @@ def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
 
     renamed_columns = {}
     for col in df.columns:
-        match, score = process.extractOne(col, EXPECTED_COLUMNS.keys(), score_cutoff=75)
-        if match:
+        match_result = process.extractOne(col, EXPECTED_COLUMNS.keys(), score_cutoff=75)
+
+        if match_result:  # Ensure we have a match before unpacking
+            match, score = match_result
             renamed_columns[col] = EXPECTED_COLUMNS[match]
         else:
-            renamed_columns[col] = col  
+            renamed_columns[col] = col  # Keep unchanged if no match found
 
     df.rename(columns=renamed_columns, inplace=True)
     logging.info(f"✅ Column Mapping Applied: {renamed_columns}")
@@ -95,7 +97,4 @@ def assess_product_performance(df: pd.DataFrame):
     }
 
     logging.info("✅ Successfully processed data insights")
-    return insights, df
-
-    logging.info("✅ Successfully processed data insights")
-    return insights, df
+    return insights, df  # ✅ Removed duplicate return statement
