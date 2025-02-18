@@ -10,7 +10,7 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-# Define the expected schema
+# Expected schema and column mappings
 EXPECTED_SCHEMA = {
     'item_id': 'int64',
     'impressions': 'int64',
@@ -22,7 +22,6 @@ EXPECTED_SCHEMA = {
     'search_impr_share': 'float64'
 }
 
-# Standardized expected column mappings
 EXPECTED_COLUMNS = {
     'item_id': 'item_id',
     'impressions': 'impressions',
@@ -32,15 +31,15 @@ EXPECTED_COLUMNS = {
     'conv. value': 'conversion_value',
     'conversion value': 'conversion_value',
     'conversion_value/cost': 'conversion_value_cost',
-    'conversion value / cost': 'conversion_value_cost',
-    'search impression share': 'search_impr_share',
-    'search_impression_share': 'search_impr_share',
-    'search impr. share': 'search_impr_share'
+    'search impression share': 'search_impr_share'
 }
 
 def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Auto-corrects column names using fuzzy matching.
+    Standardizes column names:
+    - Converts all to lowercase
+    - Removes spaces
+    - Uses fuzzy matching for incorrect names
     """
     df.columns = df.columns.str.strip().str.lower().str.replace(r'\s+', '_', regex=True)
 
@@ -50,7 +49,7 @@ def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
         if match:
             renamed_columns[col] = EXPECTED_COLUMNS[match]
         else:
-            renamed_columns[col] = col  # Keep unchanged if no close match found
+            renamed_columns[col] = col  
 
     df.rename(columns=renamed_columns, inplace=True)
     logging.info(f"✅ Column Mapping Applied: {renamed_columns}")
@@ -66,26 +65,13 @@ def validate_columns(df: pd.DataFrame) -> list:
 
     return missing_columns
 
-def validate_data_types(df: pd.DataFrame):
-    """
-    Ensures that all columns match their expected data types.
-    """
-    for col, expected_dtype in EXPECTED_SCHEMA.items():
-        if col in df.columns:
-            try:
-                df[col] = df[col].astype(expected_dtype)
-            except Exception as e:
-                logging.warning(f"⚠️ Data type mismatch in column {col}: {e}")
-    
-    return df
-
 def assess_product_performance(df: pd.DataFrame):
     """
     Processes Google PMAX campaign data:
     - Cleans & maps column names dynamically
     - Ensures all columns exist
     - Converts numeric fields safely
-    - Provides business insights in a structured format
+    - Provides business insights
     """
     df = clean_column_names(df)
     missing_columns = validate_columns(df)
@@ -94,8 +80,6 @@ def assess_product_performance(df: pd.DataFrame):
         error_message = f"🚨 Missing Required Columns: {missing_columns} (Check CSV Formatting!)"
         logging.error(error_message)
         raise KeyError(error_message)
-
-    df = validate_data_types(df)
 
     # Convert CTR percentages into decimal format
     if 'ctr' in df.columns:
@@ -109,6 +93,9 @@ def assess_product_performance(df: pd.DataFrame):
         'total_conversions': df['conversions'].sum(),
         'total_conversion_value': df['conversion_value'].sum() if 'conversion_value' in df.columns else 0,
     }
+
+    logging.info("✅ Successfully processed data insights")
+    return insights, df
 
     logging.info("✅ Successfully processed data insights")
     return insights, df
