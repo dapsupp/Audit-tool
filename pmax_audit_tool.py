@@ -5,13 +5,13 @@ import logging
 
 # Configure logging
 logging.basicConfig(
-    filename="pmax_audit_tool.log", 
-    level=logging.INFO, 
+    filename="pmax_audit_tool.log",
+    level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
 def run_web_ui():
-    """Creates a bulletproof UI with modern design for PMax Audit Tool."""
+    """Creates an enterprise-grade UI for PMax Audit Tool."""
     st.set_page_config(page_title="📊 PMax Audit Tool", layout="wide")
 
     st.title("📊 PMax Audit Tool")
@@ -30,6 +30,7 @@ def run_web_ui():
 
                 # Debugging: Log detected columns
                 logging.info(f"📂 Detected Columns: {df.columns.tolist()}")
+                st.write("📂 **Detected Columns:**", df.columns.tolist())  # Show detected columns in UI
 
                 insights, df_processed = assess_product_performance(df)
 
@@ -37,7 +38,6 @@ def run_web_ui():
                     st.subheader("📊 Summary Metrics")
                     summary_df = pd.DataFrame([insights])
 
-                    # Improved table design
                     st.dataframe(summary_df.style.format({
                         "total_conversion_value": "£{:.2f}",
                         "average_ctr": "{:.2f}%",
@@ -46,7 +46,6 @@ def run_web_ui():
                         **{"background-color": "#f9f9f9", "color": "black", "border-color": "black"}
                     ))
 
-                    # Display product-level data
                     st.subheader("📂 Processed Data Preview")
                     st.dataframe(df_processed, height=600)
 
