@@ -77,7 +77,64 @@ def run_web_ui():
                         st.markdown(card_style.format("🔍 Search Impression Share", f"{insights['average_search_impression_share']:.2f}%"), unsafe_allow_html=True)
                         st.markdown(card_style.format("⚡ ROAS (Return on Ad Spend)", f"{insights['roas']:.2f}"), unsafe_allow_html=True)
 
-                # ✅ **Everything Else Remains the Same**
+                    # ✅ **Ensure `sku_table` is Defined Before Use**
+                    sku_tiers = [5, 10, 20, 50]
+                    sku_table = pd.DataFrame([
+                        {
+                            "SKU Tier": f"Top {threshold}%",
+                            "Number of SKUs": f"{insights[f'top_{threshold}_sku_contribution']['sku_count']:,}",
+                            "Revenue Contribution (%)": f"{insights[f'top_{threshold}_sku_contribution']['percentage']}%",
+                            "Total Conversion Value (£)": f"£{insights[f'top_{threshold}_sku_contribution']['conversion_value']:,}",
+                            "ROAS": f"{insights[f'top_{threshold}_sku_contribution']['roas']:.2f}",
+                        }
+                        for threshold in sku_tiers
+                    ])
+
+                    # ✅ **Pareto Law Insights - Styled Table**
+                    st.subheader("📈 Pareto Law: SKU Contribution Breakdown")
+                    st.dataframe(sku_table, height=300)
+
+                    # ✅ **Graph Section - Max Width & Centered**
+                    st.subheader("📊 SKU Contribution vs Revenue & ROAS")
+
+                    st.markdown("<div style='display: flex; justify-content: center;'>", unsafe_allow_html=True)
+
+                    fig = px.bar(
+                        sku_table, 
+                        x="SKU Tier", 
+                        y="Revenue Contribution (%)", 
+                        text="Revenue Contribution (%)", 
+                        title="SKU Contribution vs Revenue & ROAS",
+                        color="Revenue Contribution (%)",
+                        color_continuous_scale="Blues",
+                        width=700,  # ✅ Fixed Width
+                        height=300  # ✅ Properly Sized
+                    )
+
+                    fig.update_traces(texttemplate='%{text}%', textposition='outside')
+
+                    st.plotly_chart(fig, use_container_width=False)
+                    st.markdown("</div>", unsafe_allow_html=True)
+
+                # 🟢 **TAB 2: DETECTED COLUMNS (Mapping + Processed Data)**
+                with tab2:
+                    st.subheader("📂 Detected Columns")
+                    st.write(df.columns.tolist())
+
+                    st.subheader("📂 Processed Data Preview")
+                    st.dataframe(df_processed, height=600)
+
+                    st.download_button(
+                        label="📥 Download Processed Data",
+                        data=df_processed.to_csv(index=False).encode('utf-8'),
+                        file_name="processed_data.csv",
+                        mime="text/csv"
+                    )
+
+                # 🟢 **TAB 3: DEBUGGING (Raw Insights)**
+                with tab3:
+                    st.subheader("🔍 Debugging: Raw Insights Output")
+                    st.write(insights)
 
             except KeyError as e:
                 logging.error(f"❌ Missing columns: {e}")
