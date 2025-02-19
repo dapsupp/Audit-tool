@@ -4,6 +4,9 @@ import plotly.express as px
 import logging
 from data_processing import assess_product_performance
 
+# ✅ Ensure `st.set_page_config()` is the first Streamlit command
+st.set_page_config(page_title="📊 PMax Audit Tool", layout="wide")
+
 # Configure logging
 logging.basicConfig(
     filename="pmax_audit_tool.log",
@@ -13,7 +16,6 @@ logging.basicConfig(
 
 def run_web_ui():
     """Creates an enterprise-grade UI for PMax Audit Tool."""
-    st.set_page_config(page_title="📊 PMax Audit Tool", layout="wide")
 
     st.title("📊 PMax Audit Tool")
     st.write("Upload your CSV file below to analyze Performance Max campaigns.")
@@ -119,9 +121,6 @@ def run_web_ui():
             except Exception as e:
                 logging.error(f"❌ Unexpected error: {e}")
                 st.error(f"❌ Unexpected error: {e}")
-
-if __name__ == "__main__":
-    run_web_ui()
 
 if __name__ == "__main__":
     run_web_ui()
