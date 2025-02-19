@@ -1,4 +1,4 @@
-import pandas as pd 
+import pandas as pd
 import difflib
 import logging
 from thefuzz import process
@@ -11,7 +11,6 @@ def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
     - Replacing spaces and dots with underscores
     - Mapping common abbreviations to expected names
     """
-    # Standardise column names
     df.columns = (
         df.columns
         .str.strip()
@@ -20,14 +19,12 @@ def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
         .str.replace('.', '_')
     )
     
-    # Mapping dictionary: key is the cleaned column name, value is the required name
     rename_mapping = {
         'impr_': 'impressions',
         'conv__value': 'conversion_value',
         'conv__value___cost': 'conversion_value_cost',
     }
     
-    # Rename columns based on the mapping
     df.rename(columns=rename_mapping, inplace=True)
     
     return df
@@ -37,13 +34,11 @@ def validate_columns(df: pd.DataFrame) -> list:
     Validates that the required columns exist in the DataFrame.
     If any required columns are missing, returns a list of them.
     """
-    # Define the required columns for analysis
     required_columns = ['impressions', 'clicks', 'ctr', 'conversions', 'conversion_value', 'conversion_value_cost']
     
     missing = []
     for col in required_columns:
         if col not in df.columns:
-            # Optionally, find close matches for guidance
             close_matches = difflib.get_close_matches(col, df.columns)
             if close_matches:
                 logging.warning(f"Column '{col}' not found, but found close match: {close_matches[0]}. Consider renaming.")
@@ -59,26 +54,27 @@ def assess_product_performance(df: pd.DataFrame):
     - Converts numeric fields safely
     - Provides business insights
     """
-    # Clean and standardise column names
     df = clean_column_names(df)
     
-    # Validate that the necessary columns are present
     missing_columns = validate_columns(df)
     if missing_columns:
         error_message = f"🚨 Missing Required Columns: {missing_columns} (Check CSV Formatting!)"
         logging.error(error_message)
         raise KeyError(error_message)
 
-    # Convert numeric values safely (handling cases where they are stored as strings)
     numeric_columns = ['impressions', 'clicks', 'conversions', 'conversion_value', 'conversion_value_cost']
     for col in numeric_columns:
         if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)  # Convert to float, replace errors with 0
+            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
 
-    # Convert CTR percentages into decimal format
     if 'ctr' in df.columns:
-        # Remove the percentage sign and convert to float, then to a decimal representation
         df['ctr'] = df['ctr'].astype(str).str.rstrip('%').astype(float) / 100
+
+    invalid_entries = df.applymap(lambda x: isinstance(x, str) and not x.replace('.', '', 1).isdigit())
+    problematic_cells = df[invalid_entries]
+    if not problematic_cells.empty:
+        logging.warning(f"⚠️ Invalid data detected: {problematic_cells.count().sum()} problematic entries.")
+        df.replace(problematic_cells, 0, inplace=True)
 
     insights = {
         'total_item_count': df.shape[0],
