@@ -35,14 +35,15 @@ def run_web_ui():
                 logging.info(f"📂 Detected Columns: {df.columns.tolist()}")
                 st.write("📂 **Detected Columns:**", df.columns.tolist())  # Show detected columns in UI
 
-                insights, df_processed = assess_product_performance(df)
-                
-# Debugging: Print insights to check if Search Impression Share & ROAS exist
-st.write("🔍 **DEBUGGING: Raw Insights Output**")
-st.write(insights)
+               try:
+    insights, df_processed = assess_product_performance(df)
 
-                if insights:
-                    st.subheader("📊 Summary Metrics")
+    # ✅ Debugging Code (Correctly Indented Inside Try Block)
+    st.write("🔍 **DEBUGGING: Raw Insights Output**")
+    st.write(insights)
+
+    if insights:
+        st.subheader("📊 Summary Metrics")
 
                     # Ensure values are correctly formatted as numbers before display
                     summary_df = pd.DataFrame([{
