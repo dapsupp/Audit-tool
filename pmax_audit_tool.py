@@ -1,66 +1,83 @@
-import streamlit as st
 import pandas as pd
-from data_processing import assess_product_performance
+import difflib
 import logging
+from thefuzz import process
 
-logging.basicConfig(
-    filename="pmax_audit_tool.log",
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
-)
+def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Cleans the DataFrame's column names by:
+    - Stripping whitespace
+    - Converting to lowercase
+    - Replacing spaces and dots with underscores
+    - Mapping common abbreviations to expected names
+    """
+    df.columns = (
+        df.columns
+        .str.strip()
+        .str.lower()
+        .str.replace(' ', '_')
+        .str.replace('.', '_')
+    )
+    
+    rename_mapping = {
+        'impr_': 'impressions',
+        'conv__value': 'conversion_value',
+        'conv__value___cost': 'conversion_value_cost',
+    }
+    
+    df.rename(columns=rename_mapping, inplace=True)
+    
+    return df
 
-def run_web_ui():
-    """Creates an enterprise-grade UI for PMax Audit Tool."""
-    st.set_page_config(page_title="📊 PMax Audit Tool", layout="wide")
+def validate_columns(df: pd.DataFrame) -> list:
+    """
+    Validates that the required columns exist in the DataFrame.
+    If any required columns are missing, returns a list of them.
+    """
+    required_columns = ['impressions', 'clicks', 'ctr', 'conversions', 'conversion_value', 'conversion_value_cost']
+    
+    missing = []
+    for col in required_columns:
+        if col not in df.columns:
+            close_matches = difflib.get_close_matches(col, df.columns)
+            if close_matches:
+                logging.warning(f"Column '{col}' not found, but found close match: {close_matches[0]}. Consider renaming.")
+            else:
+                missing.append(col)
+    return missing
 
-    st.title("📊 PMax Audit Tool")
-    st.write("Upload your CSV file below to analyze Performance Max campaigns.")
+def assess_product_performance(df: pd.DataFrame):
+    """
+    Processes Google PMAX campaign data:
+    - Cleans & maps column names dynamically
+    - Ensures all required columns exist
+    - Converts numeric fields safely, handling comma-separated values
+    - Provides business insights
+    """
+    df = clean_column_names(df)
+    
+    missing_columns = validate_columns(df)
+    if missing_columns:
+        error_message = f"🚨 Missing Required Columns: {missing_columns} (Check CSV Formatting!)"
+        logging.error(error_message)
+        raise KeyError(error_message)
 
-    st.warning("⚠️ **Ensure your CSV column headers are in row 1 and all numbers are formatted correctly.**")
+    numeric_columns = ['impressions', 'clicks', 'conversions', 'conversion_value', 'conversion_value_cost']
+    for col in numeric_columns:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col].astype(str).str.replace(',', ''), errors='coerce').fillna(0)
 
-    uploaded_file = st.file_uploader("📤 Upload your CSV file", type="csv", key="file_uploader_1")
+    if 'ctr' in df.columns:
+        df['ctr'] = df['ctr'].astype(str).str.rstrip('%').astype(float) / 100
 
-    if uploaded_file:
-        with st.spinner("Processing file..."):
-            try:
-                try:
-                    df = pd.read_csv(uploaded_file, encoding="utf-8", on_bad_lines="skip")
-                except UnicodeDecodeError:
-                    df = pd.read_csv(uploaded_file, encoding="ISO-8859-1", on_bad_lines="skip")
+    insights = {
+        'total_item_count': df.shape[0],
+        'total_impressions': float(df['impressions'].sum()),
+        'total_clicks': float(df['clicks'].sum()),
+        'average_ctr': float(df['ctr'].mean() * 100 if 'ctr' in df.columns else 0),
+        'total_conversions': float(df['conversions'].sum()),
+        'total_conversion_value': float(df['conversion_value'].sum() if 'conversion_value' in df.columns else 0),
+    }
 
-                logging.info(f"📂 Detected Columns: {df.columns.tolist()}")
-                st.write("📂 **Detected Columns:**", df.columns.tolist())
-
-                insights, df_processed = assess_product_performance(df)
-
-                if insights:
-                    st.subheader("📊 Summary Metrics")
-                    summary_df = pd.DataFrame([{
-                        "Total Items": insights["total_item_count"],
-                        "Total Impressions": f"{insights['total_impressions']:,}",
-                        "Total Clicks": f"{insights['total_clicks']:,}",
-                        "Average CTR": f"{insights['average_ctr']:.2f}%",
-                        "Total Conversions": f"{insights['total_conversions']:,}",
-                        "Total Conversion Value": f"£{insights['total_conversion_value']:.2f}"
-                    }])
-
-                    st.dataframe(summary_df)
-
-                    st.subheader("📂 Processed Data Preview")
-                    st.dataframe(df_processed, height=600)
-
-                    st.download_button(
-                        label="📥 Download Processed Data",
-                        data=df_processed.to_csv(index=False).encode('utf-8'),
-                        file_name="processed_data.csv",
-                        mime="text/csv"
-                    )
-            except KeyError as e:
-                logging.error(f"❌ Missing columns: {e}")
-                st.error(f"⚠️ Missing columns: {e}")
-            except Exception as e:
-                logging.error(f"❌ Unexpected error: {e}")
-                st.error(f"❌ Unexpected error: {e}")
-
-if __name__ == "__main__":
-    run_web_ui()
+    logging.info("✅ Successfully processed data insights")
+    return insights, df
