@@ -1,3 +1,35 @@
+import pandas as pd  # ✅ Ensure pandas is imported
+import difflib
+import logging
+
+def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Cleans the DataFrame's column names by:
+    - Stripping whitespace
+    - Converting to lowercase
+    - Replacing spaces and dots with underscores
+    - Mapping common abbreviations to expected names
+    """
+    df.columns = (
+        df.columns
+        .str.strip()
+        .str.lower()
+        .str.replace(' ', '_')
+        .str.replace('.', '_')
+    )
+    
+    rename_mapping = {
+        'impr_': 'impressions',
+        'conv__value': 'conversion_value',
+        'conv__value_/_cost': 'conversion_value_cost',
+        'search_impr__share': 'search_impression_share',
+        'cost': 'cost'
+    }
+    
+    df.rename(columns=rename_mapping, inplace=True)
+    
+    return df
+
 def assess_product_performance(df: pd.DataFrame):
     df = clean_column_names(df)
 
