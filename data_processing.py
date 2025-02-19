@@ -1,5 +1,4 @@
 import pandas as pd
-import difflib
 import logging
 
 def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
@@ -38,6 +37,20 @@ def assess_product_performance(df: pd.DataFrame):
     for col in numeric_columns:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col].astype(str).str.replace(r'[^0-9.]', '', regex=True), errors='coerce').fillna(0)
+
+    # ✅ Fix: Properly format Search Impression Share (handle `<10`, `--`, `%`)
+    if "search_impression_share" in df.columns:
+        df["search_impression_share"] = (
+            df["search_impression_share"]
+            .replace("--", None)  # Replace missing values with None
+            .replace("< 10", "5")  # Approximate '< 10' to midpoint value of 5%
+            .astype(str)
+            .str.rstrip("%")  # Remove percentage symbols
+            .astype(float)  # Convert to numeric format
+        )
+    
+    # Ensure Search Impression Share is capped at 100%
+    df["search_impression_share"] = df["search_impression_share"].clip(0, 100)
 
     # ✅ Fix: Clean CTR column to remove % and handle concatenated values
     if 'ctr' in df.columns:
@@ -83,7 +96,7 @@ def assess_product_performance(df: pd.DataFrame):
         "total_conversions": df["conversions"].sum() if "conversions" in df.columns else 0,
         "total_conversion_value": total_conversion_value,
         "total_cost": total_cost,
-        "average_search_impression_share": df["search_impression_share"].mean() * 100 if "search_impression_share" in df.columns else 0,
+        "average_search_impression_share": df["search_impression_share"].mean() if "search_impression_share" in df.columns else 0,  # ✅ Now correctly calculated
         "roas": total_conversion_value / total_cost if total_cost > 0 else 0,
         **sku_contribution,  # Merge SKU Contribution insights into the dictionary
     }
