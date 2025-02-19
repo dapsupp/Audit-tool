@@ -42,7 +42,7 @@ def run_web_ui():
 
                 # 🟢 **TAB 1: SKU PERFORMANCE (Main Dashboard)**
                 with tab1:
-                    # ✅ **Modern KPI Cards (Using Best Practices)**
+                    # ✅ **Modern KPI Cards (Best Practice Layout)**
                     st.subheader("📊 Key Metrics Overview")
 
                     # ✅ Define Metrics List for Scalability
@@ -74,15 +74,15 @@ def run_web_ui():
                                 color: white; 
                                 font-size: 18px;
                                 font-weight: bold;
-                                width: 250px; 
-                                min-height: 120px;
+                                width: 250px;  /* ✅ Ensures all cards are the same width */
+                                min-height: 120px; /* ✅ Prevents different card heights */
                             }
                         </style>
                         """,
                         unsafe_allow_html=True
                     )
 
-                    # ✅ Generate KPI Cards Dynamically
+                    # ✅ Generate KPI Cards Dynamically Using Flexbox Grid
                     st.markdown('<div class="metric-container">', unsafe_allow_html=True)
                     for metric in metrics:
                         st.markdown(f'<div class="metric-card"><h3>{metric["label"]}</h3><p style="font-size: 30px; margin: 5px 0;">{metric["value"]}</p></div>', unsafe_allow_html=True)
