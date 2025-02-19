@@ -34,43 +34,45 @@ def run_web_ui():
                 # Debugging: Log detected columns
                 logging.info(f"📂 Detected Columns: {df.columns.tolist()}")
                 st.write("📂 **Detected Columns:**", df.columns.tolist())  # Show detected columns in UI
-                
+
+                # ✅ Correctly Indented Try Block
                 try:
                     insights, df_processed = assess_product_performance(df)
-                    # ✅ Debugging Code (Correctly Indented Inside Try Block)
-    st.write("🔍 **DEBUGGING: Raw Insights Output**")
-    st.write(insights)
 
-    if insights:
-        st.subheader("📊 Summary Metrics")
+                    # ✅ Debugging Code (Correct Indentation)
+                    st.write("🔍 **DEBUGGING: Raw Insights Output**")
+                    st.write(insights)
 
-                    # Ensure values are correctly formatted as numbers before display
-                    summary_df = pd.DataFrame([{
-                        "Total Items": insights["total_item_count"],
-                        "Total Impressions": f"{insights['total_impressions']:,}",
-                        "Total Clicks": f"{insights['total_clicks']:,}",
-                        "Average CTR": f"{insights['average_ctr']:.2f}%",
-                        "Total Conversions": f"{insights['total_conversions']:,}",
-                        "Total Conversion Value": f"£{insights['total_conversion_value']:.2f}"
-                    }])
+                    if insights:
+                        st.subheader("📊 Summary Metrics")
 
-                    st.dataframe(summary_df)
+                        # Ensure values are correctly formatted as numbers before display
+                        summary_df = pd.DataFrame([{
+                            "Total Items": insights["total_item_count"],
+                            "Total Impressions": f"{insights['total_impressions']:,}",
+                            "Total Clicks": f"{insights['total_clicks']:,}",
+                            "Average CTR": f"{insights['average_ctr']:.2f}%",
+                            "Total Conversions": f"{insights['total_conversions']:,}",
+                            "Total Conversion Value": f"£{insights['total_conversion_value']:.2f}"
+                        }])
 
-                    st.subheader("📂 Processed Data Preview")
-                    st.dataframe(df_processed, height=600)
+                        st.dataframe(summary_df)
 
-                    st.download_button(
-                        label="📥 Download Processed Data",
-                        data=df_processed.to_csv(index=False).encode('utf-8'),
-                        file_name="processed_data.csv",
-                        mime="text/csv"
-                    )
-            except KeyError as e:
-                logging.error(f"❌ Missing columns: {e}")
-                st.error(f"⚠️ Missing columns: {e}")
-            except Exception as e:
-                logging.error(f"❌ Unexpected error: {e}")
-                st.error(f"❌ Unexpected error: {e}")
+                        st.subheader("📂 Processed Data Preview")
+                        st.dataframe(df_processed, height=600)
+
+                        st.download_button(
+                            label="📥 Download Processed Data",
+                            data=df_processed.to_csv(index=False).encode('utf-8'),
+                            file_name="processed_data.csv",
+                            mime="text/csv"
+                        )
+                except KeyError as e:
+                    logging.error(f"❌ Missing columns: {e}")
+                    st.error(f"⚠️ Missing columns: {e}")
+                except Exception as e:
+                    logging.error(f"❌ Unexpected error: {e}")
+                    st.error(f"❌ Unexpected error: {e}")
 
 if __name__ == "__main__":
     run_web_ui()
