@@ -56,9 +56,10 @@ def run_web_ui():
 
                     # ✅ Create a Proper 3x2 Grid Using `st.columns(3)`
                     row1 = st.columns(3)  # First row (3 cards)
+                    st.markdown("<br>", unsafe_allow_html=True)  # ✅ Adds Space Between Rows
                     row2 = st.columns(3)  # Second row (3 cards)
 
-                    # ✅ Define Consistent Card Styling
+                    # ✅ Define Consistent Card Styling with Extra Bottom Margin
                     card_style = """
                         <div style="
                             background-color: #1E1E1E; 
@@ -71,7 +72,7 @@ def run_web_ui():
                             font-weight: bold;
                             width: 100%;  /* ✅ Ensures full width within column */
                             min-height: 120px; /* ✅ Prevents uneven card heights */
-                            margin: 5px; /* ✅ Adds spacing between cards */
+                            margin: 5px 0 15px 0; /* ✅ Adds spacing between rows */
                         ">
                             <h3 style="color: white;">{}</h3>
                             <p style="font-size: 30px; margin: 5px 0;">{}</p>
