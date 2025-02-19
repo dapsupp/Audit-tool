@@ -33,10 +33,37 @@ def run_web_ui():
                 except UnicodeDecodeError:
                     df = pd.read_csv(uploaded_file, encoding="ISO-8859-1", on_bad_lines="skip")
 
-                insights = assess_product_performance(df)
+                # ✅ **1. Detected Columns**
+                logging.info(f"📂 Detected Columns: {df.columns.tolist()}")
+                st.subheader("📂 Detected Columns")
+                st.write(df.columns.tolist())
 
-                # ✅ SKU Contribution Breakdown Table
-                st.subheader("📈 SKU Contribution Breakdown (Revenue & ROAS)")
+                # Process data
+                insights, df_processed = assess_product_performance(df)
+
+                # ✅ **2. Debugging: Raw Insights Output**
+                st.subheader("🔍 Debugging: Raw Insights Output")
+                st.write(insights)
+
+                # ✅ **3. Summary Metrics**
+                if insights:
+                    st.subheader("📊 Summary Metrics")
+                    summary_df = pd.DataFrame([{
+                        "Total Items": insights["total_item_count"],
+                        "Total Impressions": f"{insights['total_impressions']:,}",
+                        "Total Clicks": f"{insights['total_clicks']:,}",
+                        "Average CTR": f"{insights['average_ctr']:.2f}%",
+                        "Total Conversions": f"{insights['total_conversions']:,}",
+                        "Total Conversion Value": f"£{insights['total_conversion_value']:.2f}",
+                        "Total Cost": f"£{insights['total_cost']:.2f}",
+                        "Average Search Impression Share": f"{insights['average_search_impression_share']:.2f}%",
+                        "ROAS (Conv. Value / Cost)": f"{insights['roas']:.2f}",
+                    }])
+
+                    st.dataframe(summary_df)
+
+                # ✅ **4. Pareto Law Insights (New Section)**
+                st.subheader("📈 Pareto Law Insights: SKU Contribution Breakdown")
 
                 sku_tiers = [5, 10, 20, 50]
 
@@ -85,6 +112,18 @@ def run_web_ui():
 
                 # Display the plot
                 st.pyplot(fig)
+
+                # ✅ **5. Processed Data Preview**
+                st.subheader("📂 Processed Data Preview")
+                st.dataframe(df_processed, height=600)
+
+                # ✅ Download Processed Data
+                st.download_button(
+                    label="📥 Download Processed Data",
+                    data=df_processed.to_csv(index=False).encode('utf-8'),
+                    file_name="processed_data.csv",
+                    mime="text/csv"
+                )
 
             except KeyError as e:
                 logging.error(f"❌ Missing columns: {e}")
