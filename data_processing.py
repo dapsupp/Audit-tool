@@ -78,6 +78,14 @@ def assess_product_performance(df: pd.DataFrame):
 
     avg_search_impression_share = df['search_impression_share'].mean() * 100 if 'search_impression_share' in df.columns and df['search_impression_share'].sum() > 0 else 0
 
+    # Pareto Law Analysis (80% of sales driven by how many SKUs)
+    df_sorted = df.sort_values(by='conversion_value', ascending=False)
+    df_sorted['cumulative_sum'] = df_sorted['conversion_value'].cumsum()
+    threshold = total_conversion_value * 0.8
+    top_skus = df_sorted[df_sorted['cumulative_sum'] <= threshold]
+    top_skus_count = top_skus.shape[0]
+    top_skus_percentage = (top_skus_count / df.shape[0]) * 100
+
     insights = {
         'total_item_count': df.shape[0],
         'total_impressions': float(df['impressions'].sum()),
@@ -88,6 +96,8 @@ def assess_product_performance(df: pd.DataFrame):
         'total_cost': total_cost,
         'average_search_impression_share': avg_search_impression_share,
         'roas': roas,
+        'top_skus_count': top_skus_count,
+        'top_skus_percentage': top_skus_percentage,
     }
 
     logging.info("✅ Successfully processed data insights")
