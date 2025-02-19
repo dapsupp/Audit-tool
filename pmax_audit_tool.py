@@ -42,10 +42,10 @@ def run_web_ui():
 
                 # 🟢 **TAB 1: SKU PERFORMANCE (Main Dashboard)**
                 with tab1:
-                    # ✅ **Modern KPI Cards (Now with Proper Spacing & Dynamic Layout)**
+                    # ✅ **Modern KPI Cards (Using Best Practices)**
                     st.subheader("📊 Key Metrics Overview")
 
-                    # ✅ Define Metrics List for Better Maintainability
+                    # ✅ Define Metrics List for Scalability
                     metrics = [
                         {"label": "🛍️ Total Items", "value": f"{insights['total_item_count']:,}"},
                         {"label": "📈 Total Impressions", "value": f"{insights['total_impressions']:,}"},
@@ -55,35 +55,38 @@ def run_web_ui():
                         {"label": "⚡ ROAS (Return on Ad Spend)", "value": f"{insights['roas']:.2f}"},
                     ]
 
-                    # ✅ Define Grid Layout with Two Rows of Three Columns
-                    rows = [metrics[:3], metrics[3:]]  # Split into two rows
+                    # ✅ Apply CSS Styling for Grid-Based Layout
+                    st.markdown(
+                        """
+                        <style>
+                            .metric-container {
+                                display: flex;
+                                flex-wrap: wrap;
+                                justify-content: center;
+                                gap: 15px;
+                            }
+                            .metric-card {
+                                background-color: #1E1E1E; 
+                                padding: 20px; 
+                                border-radius: 10px; 
+                                text-align: center; 
+                                box-shadow: 0px 4px 8px rgba(255, 255, 255, 0.2);
+                                color: white; 
+                                font-size: 18px;
+                                font-weight: bold;
+                                width: 250px; 
+                                min-height: 120px;
+                            }
+                        </style>
+                        """,
+                        unsafe_allow_html=True
+                    )
 
-                    # ✅ Modern CSS-Based Card Style
-                    card_style = """
-                        <div style="
-                            background-color: #1E1E1E; 
-                            padding: 20px; 
-                            border-radius: 10px; 
-                            text-align: center; 
-                            box-shadow: 0px 4px 8px rgba(255, 255, 255, 0.2);
-                            color: white; 
-                            font-size: 18px;
-                            font-weight: bold;
-                            margin: 10px;  /* ✅ Adds consistent spacing */
-                            width: 250px;  /* ✅ Ensures all cards are the same width */
-                            min-height: 120px; /* ✅ Prevents different card heights */
-                        ">
-                            <h3 style="color: white;">{}</h3>
-                            <p style="font-size: 30px; margin: 5px 0;">{}</p>
-                        </div>
-                    """
-
-                    # ✅ Loop Through Rows & Generate Cards
-                    for row in rows:
-                        col1, col2, col3 = st.columns(3)
-                        cols = [col1, col2, col3]  # Map the columns dynamically
-                        for col, metric in zip(cols, row):
-                            col.markdown(card_style.format(metric["label"], metric["value"]), unsafe_allow_html=True)
+                    # ✅ Generate KPI Cards Dynamically
+                    st.markdown('<div class="metric-container">', unsafe_allow_html=True)
+                    for metric in metrics:
+                        st.markdown(f'<div class="metric-card"><h3>{metric["label"]}</h3><p style="font-size: 30px; margin: 5px 0;">{metric["value"]}</p></div>', unsafe_allow_html=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
 
                     # ✅ **Ensure `sku_table` is Defined Before Use**
                     sku_tiers = [5, 10, 20, 50]
