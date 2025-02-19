@@ -47,66 +47,46 @@ def run_web_ui():
                     
                     col1, col2, col3 = st.columns(3)
 
-                    # Styled KPI Cards
+                    card_style = """
+                        <div style="
+                            background-color: #1E1E1E; 
+                            padding: 20px; 
+                            border-radius: 10px; 
+                            text-align: center; 
+                            box-shadow: 0px 4px 8px rgba(255, 255, 255, 0.2);
+                            color: white; 
+                            font-size: 18px;
+                            font-weight: bold;
+                        ">
+                            <h3 style="color: white;">{}</h3>
+                            <p style="font-size: 30px; margin: 5px 0;">{}</p>
+                        </div>
+                    """
+
                     with col1:
-                        st.markdown(
-                            f"""
-                            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center;">
-                                <h3>🛍️ Total Items</h3>
-                                <p style="font-size: 24px; font-weight: bold;">{insights['total_item_count']:,}</p>
-                            </div>
-                            """,
-                            unsafe_allow_html=True
-                        )
-                        st.markdown(
-                            f"""
-                            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center;">
-                                <h3>📈 Total Impressions</h3>
-                                <p style="font-size: 24px; font-weight: bold;">{insights['total_impressions']:,}</p>
-                            </div>
-                            """,
-                            unsafe_allow_html=True
-                        )
+                        st.markdown(card_style.format("🛍️ Total Items", f"{insights['total_item_count']:,}"), unsafe_allow_html=True)
+                        st.markdown(card_style.format("📈 Total Impressions", f"{insights['total_impressions']:,}"), unsafe_allow_html=True)
 
                     with col2:
-                        st.markdown(
-                            f"""
-                            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center;">
-                                <h3>📊 Average CTR</h3>
-                                <p style="font-size: 24px; font-weight: bold;">{insights['average_ctr']:.2f}%</p>
-                            </div>
-                            """,
-                            unsafe_allow_html=True
-                        )
-                        st.markdown(
-                            f"""
-                            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center;">
-                                <h3>💰 Total Conversion Value</h3>
-                                <p style="font-size: 24px; font-weight: bold;">£{insights['total_conversion_value']:.2f}</p>
-                            </div>
-                            """,
-                            unsafe_allow_html=True
-                        )
+                        st.markdown(card_style.format("📊 Average CTR", f"{insights['average_ctr']:.2f}%"), unsafe_allow_html=True)
+                        st.markdown(card_style.format("💰 Total Conversion Value", f"£{insights['total_conversion_value']:.2f}"), unsafe_allow_html=True)
 
                     with col3:
-                        st.markdown(
-                            f"""
-                            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center;">
-                                <h3>🔍 Search Impression Share</h3>
-                                <p style="font-size: 24px; font-weight: bold;">{insights['average_search_impression_share']:.2f}%</p>
-                            </div>
-                            """,
-                            unsafe_allow_html=True
-                        )
-                        st.markdown(
-                            f"""
-                            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center;">
-                                <h3>⚡ ROAS (Return on Ad Spend)</h3>
-                                <p style="font-size: 24px; font-weight: bold;">{insights['roas']:.2f}</p>
-                            </div>
-                            """,
-                            unsafe_allow_html=True
-                        )
+                        st.markdown(card_style.format("🔍 Search Impression Share", f"{insights['average_search_impression_share']:.2f}%"), unsafe_allow_html=True)
+                        st.markdown(card_style.format("⚡ ROAS (Return on Ad Spend)", f"{insights['roas']:.2f}"), unsafe_allow_html=True)
+
+                    # ✅ **Ensure `sku_table` is Defined Before Use**
+                    sku_tiers = [5, 10, 20, 50]
+                    sku_table = pd.DataFrame([
+                        {
+                            "SKU Tier": f"Top {threshold}%",
+                            "Number of SKUs": f"{insights[f'top_{threshold}_sku_contribution']['sku_count']:,}",
+                            "Revenue Contribution (%)": f"{insights[f'top_{threshold}_sku_contribution']['percentage']}%",
+                            "Total Conversion Value (£)": f"£{insights[f'top_{threshold}_sku_contribution']['conversion_value']:,}",
+                            "ROAS": f"{insights[f'top_{threshold}_sku_contribution']['roas']:.2f}",
+                        }
+                        for threshold in sku_tiers
+                    ])
 
                     # ✅ **Pareto Law Insights - Styled Table**
                     st.subheader("📈 Pareto Law: SKU Contribution Breakdown")
