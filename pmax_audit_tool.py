@@ -36,6 +36,10 @@ def run_web_ui():
                 st.write("📂 **Detected Columns:**", df.columns.tolist())  # Show detected columns in UI
 
                 insights, df_processed = assess_product_performance(df)
+                
+# Debugging: Print insights to check if Search Impression Share & ROAS exist
+st.write("🔍 **DEBUGGING: Raw Insights Output**")
+st.write(insights)
 
                 if insights:
                     st.subheader("📊 Summary Metrics")
