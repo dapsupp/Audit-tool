@@ -42,43 +42,80 @@ def run_web_ui():
 
                 # 🟢 **TAB 1: SKU PERFORMANCE (Main Dashboard)**
                 with tab1:
-                    # ✅ **Styled Summary Metrics**
+                    # ✅ **Modern KPI Cards**
                     st.subheader("📊 Key Metrics Overview")
                     
-                    # Define three columns for clean metric cards
                     col1, col2, col3 = st.columns(3)
 
+                    # Styled KPI Cards
                     with col1:
-                        st.metric(label="🛍️ Total Items", value=f"{insights['total_item_count']:,}")
-                        st.metric(label="📈 Total Impressions", value=f"{insights['total_impressions']:,}")
-                        st.metric(label="🎯 Total Clicks", value=f"{insights['total_clicks']:,}")
+                        st.markdown(
+                            f"""
+                            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center;">
+                                <h3>🛍️ Total Items</h3>
+                                <p style="font-size: 24px; font-weight: bold;">{insights['total_item_count']:,}</p>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+                        st.markdown(
+                            f"""
+                            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center;">
+                                <h3>📈 Total Impressions</h3>
+                                <p style="font-size: 24px; font-weight: bold;">{insights['total_impressions']:,}</p>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
 
                     with col2:
-                        st.metric(label="📊 Average CTR", value=f"{insights['average_ctr']:.2f}%")
-                        st.metric(label="💰 Total Conversion Value", value=f"£{insights['total_conversion_value']:.2f}")
-                        st.metric(label="💵 Total Cost", value=f"£{insights['total_cost']:.2f}")
+                        st.markdown(
+                            f"""
+                            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center;">
+                                <h3>📊 Average CTR</h3>
+                                <p style="font-size: 24px; font-weight: bold;">{insights['average_ctr']:.2f}%</p>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+                        st.markdown(
+                            f"""
+                            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center;">
+                                <h3>💰 Total Conversion Value</h3>
+                                <p style="font-size: 24px; font-weight: bold;">£{insights['total_conversion_value']:.2f}</p>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
 
                     with col3:
-                        st.metric(label="🔍 Search Impression Share", value=f"{insights['average_search_impression_share']:.2f}%")
-                        st.metric(label="⚡ ROAS (Return on Ad Spend)", value=f"{insights['roas']:.2f}")
+                        st.markdown(
+                            f"""
+                            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center;">
+                                <h3>🔍 Search Impression Share</h3>
+                                <p style="font-size: 24px; font-weight: bold;">{insights['average_search_impression_share']:.2f}%</p>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+                        st.markdown(
+                            f"""
+                            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center;">
+                                <h3>⚡ ROAS (Return on Ad Spend)</h3>
+                                <p style="font-size: 24px; font-weight: bold;">{insights['roas']:.2f}</p>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
 
                     # ✅ **Pareto Law Insights - Styled Table**
                     st.subheader("📈 Pareto Law: SKU Contribution Breakdown")
-                    sku_tiers = [5, 10, 20, 50]
-                    sku_table = pd.DataFrame([
-                        {
-                            "SKU Tier": f"Top {threshold}%",
-                            "Number of SKUs": f"{insights[f'top_{threshold}_sku_contribution']['sku_count']:,}",
-                            "Revenue Contribution (%)": f"{insights[f'top_{threshold}_sku_contribution']['percentage']}%",
-                            "Total Conversion Value (£)": f"£{insights[f'top_{threshold}_sku_contribution']['conversion_value']:,}",
-                            "ROAS": f"{insights[f'top_{threshold}_sku_contribution']['roas']:.2f}",
-                        }
-                        for threshold in sku_tiers
-                    ])
                     st.dataframe(sku_table, height=300)
 
-                    # ✅ **Graph Section - Fixed Width & Height**
+                    # ✅ **Graph Section - Max Width & Centered**
                     st.subheader("📊 SKU Contribution vs Revenue & ROAS")
+
+                    st.markdown("<div style='display: flex; justify-content: center;'>", unsafe_allow_html=True)
 
                     fig = px.bar(
                         sku_table, 
@@ -88,14 +125,14 @@ def run_web_ui():
                         title="SKU Contribution vs Revenue & ROAS",
                         color="Revenue Contribution (%)",
                         color_continuous_scale="Blues",
-                        width=800,  # ✅ Set max width (Prevents oversized graph)
-                        height=300  # ✅ Set height (Keeps the graph compact)
+                        width=700,  # ✅ Fixed Width
+                        height=300  # ✅ Properly Sized
                     )
 
                     fig.update_traces(texttemplate='%{text}%', textposition='outside')
 
-                    # ✅ Auto-Resizes to Fit Streamlit Without Being Too Large
                     st.plotly_chart(fig, use_container_width=False)
+                    st.markdown("</div>", unsafe_allow_html=True)
 
                 # 🟢 **TAB 2: DETECTED COLUMNS (Mapping + Processed Data)**
                 with tab2:
