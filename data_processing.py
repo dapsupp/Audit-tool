@@ -1,4 +1,4 @@
-import pandas as pd  # ✅ Ensure pandas is imported
+import pandas as pd
 import difflib
 import logging
 
@@ -33,9 +33,17 @@ def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
 def assess_product_performance(df: pd.DataFrame):
     df = clean_column_names(df)
 
-    # Convert 'conversion_value' and 'cost' to numeric safely
-    df['conversion_value'] = pd.to_numeric(df['conversion_value'].astype(str).str.replace(r'[^0-9.]', '', regex=True), errors='coerce').fillna(0)
-    df['cost'] = pd.to_numeric(df['cost'].astype(str).str.replace(r'[^0-9.]', '', regex=True), errors='coerce').fillna(0)
+    # Convert numeric columns safely
+    numeric_columns = ['impressions', 'clicks', 'conversions', 'conversion_value', 'conversion_value_cost', 'search_impression_share', 'cost']
+    for col in numeric_columns:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col].astype(str).str.replace(r'[^0-9.]', '', regex=True), errors='coerce').fillna(0)
+
+    # ✅ Fix: Clean CTR column to remove % and handle concatenated values
+    if 'ctr' in df.columns:
+        df['ctr'] = df['ctr'].astype(str).str.replace('%', '', regex=False)  # Remove % symbols
+        df['ctr'] = df['ctr'].str.extract(r'(\d+\.\d+)')  # Extract only numeric values
+        df['ctr'] = pd.to_numeric(df['ctr'], errors='coerce').fillna(0) / 100  # Convert to decimal format
 
     total_conversion_value = df['conversion_value'].sum()
     total_cost = df['cost'].sum()
@@ -66,7 +74,7 @@ def assess_product_performance(df: pd.DataFrame):
                 "roas": round(roas, 2),
             }
 
-    # ✅ Fix: Ensure the function returns both insights & the processed DataFrame
+    # ✅ Ensure the function returns both insights & the processed DataFrame
     insights = {
         "total_item_count": df.shape[0],
         "total_impressions": df["impressions"].sum() if "impressions" in df.columns else 0,
