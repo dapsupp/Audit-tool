@@ -33,7 +33,7 @@ def run_web_ui():
 
                 # Debugging: Log detected columns
                 logging.info(f"📂 Detected Columns: {df.columns.tolist()}")
-                st.write("📂 **Detected Columns:**", df.columns.tolist())  # Show detected columns in UI
+                st.write("📂 **Detected Columns:**", df.columns.tolist())
 
                 insights, df_processed = assess_product_performance(df)
 
@@ -51,8 +51,10 @@ def run_web_ui():
                         "Total Conversions": f"{insights['total_conversions']:,}",
                         "Total Conversion Value": f"£{insights['total_conversion_value']:.2f}",
                         "Total Cost": f"£{insights['total_cost']:.2f}",
-                        "Average Search Impression Share": f"{insights['average_search_impression_share']:.2f}%",
-                        "ROAS (Conv. Value / Cost)": f"{insights['roas']:.2f}"
+                        "Average Search Impression Share": f"{insights['average_search_impression_share']:.2f}%%",
+                        "ROAS (Conv. Value / Cost)": f"{insights['roas']:.2f}",
+                        "Top SKUs Count (80% of Sales)": f"{insights['top_skus_count']}",
+                        "Top SKUs Percentage": f"{insights['top_skus_percentage']:.2f}%"
                     }])
 
                     st.dataframe(summary_df)
