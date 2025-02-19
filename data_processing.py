@@ -23,6 +23,8 @@ def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
         'impr_': 'impressions',
         'conv__value': 'conversion_value',
         'conv__value___cost': 'conversion_value_cost',
+        'search_impr_share': 'search_impression_share',
+        'cost': 'cost'
     }
     
     df.rename(columns=rename_mapping, inplace=True)
@@ -34,7 +36,7 @@ def validate_columns(df: pd.DataFrame) -> list:
     Validates that the required columns exist in the DataFrame.
     If any required columns are missing, returns a list of them.
     """
-    required_columns = ['impressions', 'clicks', 'ctr', 'conversions', 'conversion_value', 'conversion_value_cost']
+    required_columns = ['impressions', 'clicks', 'ctr', 'conversions', 'conversion_value', 'conversion_value_cost', 'search_impression_share', 'cost']
     
     missing = []
     for col in required_columns:
@@ -62,20 +64,17 @@ def assess_product_performance(df: pd.DataFrame):
         logging.error(error_message)
         raise KeyError(error_message)
 
-    numeric_columns = ['impressions', 'clicks', 'conversions', 'conversion_value', 'conversion_value_cost']
+    numeric_columns = ['impressions', 'clicks', 'conversions', 'conversion_value', 'conversion_value_cost', 'search_impression_share', 'cost']
     for col in numeric_columns:
         if col in df.columns:
-            # Convert to string, remove non-numeric characters (except . for decimals), then convert to float
             df[col] = pd.to_numeric(df[col].astype(str).str.replace(r'[^0-9.]', '', regex=True), errors='coerce').fillna(0)
 
     if 'ctr' in df.columns:
         df['ctr'] = df['ctr'].astype(str).str.rstrip('%').astype(float) / 100
-
-    # Identify and handle invalid entries
-    invalid_entries = df.applymap(lambda x: isinstance(x, str) and not x.replace('.', '', 1).isdigit())
-    if invalid_entries.any().any():
-        logging.warning(f"⚠️ Invalid data detected: {invalid_entries.sum().sum()} problematic entries.")
-        df = df.mask(invalid_entries, 0)  # ✅ Corrected: Replaces invalid values with 0
+    
+    total_conversion_value = float(df['conversion_value'].sum() if 'conversion_value' in df.columns else 0)
+    total_cost = float(df['cost'].sum() if 'cost' in df.columns else 0)
+    conversion_value_cost_ratio = (total_cost / total_conversion_value) if total_conversion_value > 0 else 0
 
     insights = {
         'total_item_count': df.shape[0],
@@ -83,7 +82,9 @@ def assess_product_performance(df: pd.DataFrame):
         'total_clicks': float(df['clicks'].sum()),
         'average_ctr': float(df['ctr'].mean() * 100 if 'ctr' in df.columns else 0),
         'total_conversions': float(df['conversions'].sum()),
-        'total_conversion_value': float(df['conversion_value'].sum() if 'conversion_value' in df.columns else 0),
+        'total_conversion_value': total_conversion_value,
+        'average_search_impression_share': float(df['search_impression_share'].mean() * 100 if 'search_impression_share' in df.columns else 0),
+        'conversion_value_cost_ratio': conversion_value_cost_ratio,
     }
 
     logging.info("✅ Successfully processed data insights")
