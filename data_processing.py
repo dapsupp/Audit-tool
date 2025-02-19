@@ -22,8 +22,8 @@ def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
     rename_mapping = {
         'impr_': 'impressions',
         'conv__value': 'conversion_value',
-        'conv__value___cost': 'conversion_value_cost',
-        'search_impr_share': 'search_impression_share',
+        'conv__value_/_cost': 'conversion_value_cost',
+        'search_impr__share': 'search_impression_share',
         'cost': 'cost'
     }
     
@@ -74,7 +74,9 @@ def assess_product_performance(df: pd.DataFrame):
     
     total_conversion_value = float(df['conversion_value'].sum() if 'conversion_value' in df.columns else 0)
     total_cost = float(df['cost'].sum() if 'cost' in df.columns else 0)
-    conversion_value_cost_ratio = (total_cost / total_conversion_value) if total_conversion_value > 0 else 0
+    roas = (total_conversion_value / total_cost) if total_cost > 0 else 0
+
+    avg_search_impression_share = df['search_impression_share'].mean() * 100 if 'search_impression_share' in df.columns and df['search_impression_share'].sum() > 0 else 0
 
     insights = {
         'total_item_count': df.shape[0],
@@ -83,12 +85,10 @@ def assess_product_performance(df: pd.DataFrame):
         'average_ctr': float(df['ctr'].mean() * 100 if 'ctr' in df.columns else 0),
         'total_conversions': float(df['conversions'].sum()),
         'total_conversion_value': total_conversion_value,
-        'average_search_impression_share': float(df['search_impression_share'].mean() * 100 if 'search_impression_share' in df.columns else 0),
-        'conversion_value_cost_ratio': conversion_value_cost_ratio,
+        'total_cost': total_cost,
+        'average_search_impression_share': avg_search_impression_share,
+        'roas': roas,
     }
 
     logging.info("✅ Successfully processed data insights")
     return insights, df
-
-if __name__ == "__main__":
-    run_web_ui()
