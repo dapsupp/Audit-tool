@@ -3,7 +3,6 @@ import pandas as pd
 from data_processing import assess_product_performance
 import logging
 
-# Configure logging
 logging.basicConfig(
     filename="pmax_audit_tool.log",
     level=logging.INFO,
@@ -17,7 +16,6 @@ def run_web_ui():
     st.title("📊 PMax Audit Tool")
     st.write("Upload your CSV file below to analyze Performance Max campaigns.")
 
-    # **New UI Message**
     st.warning("⚠️ **Ensure your CSV column headers are in row 1 and all numbers are formatted correctly.**")
 
     uploaded_file = st.file_uploader("📤 Upload your CSV file", type="csv", key="file_uploader_1")
@@ -25,22 +23,18 @@ def run_web_ui():
     if uploaded_file:
         with st.spinner("Processing file..."):
             try:
-                # Handle encoding variations
                 try:
                     df = pd.read_csv(uploaded_file, encoding="utf-8", on_bad_lines="skip")
                 except UnicodeDecodeError:
                     df = pd.read_csv(uploaded_file, encoding="ISO-8859-1", on_bad_lines="skip")
 
-                # Debugging: Log detected columns
                 logging.info(f"📂 Detected Columns: {df.columns.tolist()}")
-                st.write("📂 **Detected Columns:**", df.columns.tolist())  # Show detected columns in UI
+                st.write("📂 **Detected Columns:**", df.columns.tolist())
 
                 insights, df_processed = assess_product_performance(df)
 
                 if insights:
                     st.subheader("📊 Summary Metrics")
-
-                    # Ensure values are correctly formatted as numbers before display
                     summary_df = pd.DataFrame([{
                         "Total Items": insights["total_item_count"],
                         "Total Impressions": f"{insights['total_impressions']:,}",
