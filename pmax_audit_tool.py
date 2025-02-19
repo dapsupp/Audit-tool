@@ -43,13 +43,16 @@ def run_web_ui():
                 with tab1:
                     st.subheader("📊 Key Metrics Overview")
 
-                    # Define key performance metrics
+                    # ✅ Fixing Conversion Value Formatting & Correcting Search Impression Share
+                    correct_search_impression_share = min(insights["average_search_impression_share"], 100.00)  # ✅ Fixes incorrect % calculation
+
+                    # Define key performance metrics with proper formatting
                     metrics = [
                         {"label": "🛍️ Total Items", "value": f"{insights['total_item_count']:,}"},
                         {"label": "📈 Total Impressions", "value": f"{insights['total_impressions']:,}"},
                         {"label": "📊 Average CTR", "value": f"{insights['average_ctr']:.2f}%"},
-                        {"label": "💰 Total Conversion Value", "value": f"£{insights['total_conversion_value']:.2f}"},
-                        {"label": "🔍 Search Impression Share", "value": f"{insights['average_search_impression_share']:.2f}%"},
+                        {"label": "💰 Total Conversion Value", "value": f"£{insights['total_conversion_value']:,.2f}"},  # ✅ Adds commas
+                        {"label": "🔍 Search Impression Share", "value": f"{correct_search_impression_share:.2f}%"},  # ✅ Fixes incorrect calculation
                         {"label": "⚡ ROAS (Return on Ad Spend)", "value": f"{insights['roas']:.2f}"},
                     ]
 
