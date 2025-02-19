@@ -51,7 +51,7 @@ def assess_product_performance(df: pd.DataFrame):
     Processes Google PMAX campaign data:
     - Cleans & maps column names dynamically
     - Ensures all required columns exist
-    - Converts numeric fields safely
+    - Converts numeric fields safely, handling comma-separated values
     - Provides business insights
     """
     df = clean_column_names(df)
@@ -65,16 +65,17 @@ def assess_product_performance(df: pd.DataFrame):
     numeric_columns = ['impressions', 'clicks', 'conversions', 'conversion_value', 'conversion_value_cost']
     for col in numeric_columns:
         if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+            # Convert to string, remove non-numeric characters (except . for decimals), then convert to float
+            df[col] = pd.to_numeric(df[col].astype(str).str.replace(r'[^0-9.]', '', regex=True), errors='coerce').fillna(0)
 
     if 'ctr' in df.columns:
         df['ctr'] = df['ctr'].astype(str).str.rstrip('%').astype(float) / 100
 
+    # Identify and handle invalid entries
     invalid_entries = df.applymap(lambda x: isinstance(x, str) and not x.replace('.', '', 1).isdigit())
-    problematic_cells = df[invalid_entries]
-    if not problematic_cells.empty:
-        logging.warning(f"⚠️ Invalid data detected: {problematic_cells.count().sum()} problematic entries.")
-        df.replace(problematic_cells, 0, inplace=True)
+    if invalid_entries.any().any():
+        logging.warning(f"⚠️ Invalid data detected: {invalid_entries.sum().sum()} problematic entries.")
+        df = df.mask(invalid_entries, 0)  # ✅ Corrected: Replaces invalid values with 0
 
     insights = {
         'total_item_count': df.shape[0],
