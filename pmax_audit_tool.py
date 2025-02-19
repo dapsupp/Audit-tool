@@ -77,7 +77,7 @@ def run_web_ui():
                     ])
                     st.dataframe(sku_table, height=300)
 
-                    # ✅ **Graph Section - Max Width Control**
+                    # ✅ **Graph Section - Fixed Width & Height**
                     st.subheader("📊 SKU Contribution vs Revenue & ROAS")
 
                     fig = px.bar(
@@ -87,13 +87,15 @@ def run_web_ui():
                         text="Revenue Contribution (%)", 
                         title="SKU Contribution vs Revenue & ROAS",
                         color="Revenue Contribution (%)",
-                        color_continuous_scale="Blues"
+                        color_continuous_scale="Blues",
+                        width=800,  # ✅ Set max width (Prevents oversized graph)
+                        height=300  # ✅ Set height (Keeps the graph compact)
                     )
 
                     fig.update_traces(texttemplate='%{text}%', textposition='outside')
 
-                    # ✅ Auto-Resizes to Fit Streamlit Container Without Being Too Large
-                    st.plotly_chart(fig, use_container_width=True)
+                    # ✅ Auto-Resizes to Fit Streamlit Without Being Too Large
+                    st.plotly_chart(fig, use_container_width=False)
 
                 # 🟢 **TAB 2: DETECTED COLUMNS (Mapping + Processed Data)**
                 with tab2:
