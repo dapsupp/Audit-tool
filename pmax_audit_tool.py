@@ -1,9 +1,8 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-from data_processing import assess_product_performance
+import plotly.express as px
 import logging
+from data_processing import assess_product_performance
 
 # Configure logging
 logging.basicConfig(
@@ -74,43 +73,23 @@ def run_web_ui():
                         ])
                         st.dataframe(sku_table)
 
-                    # ✅ **Graph Section (Dynamically Adjusted Size)**
+                    # ✅ **Graph Section - Now Using Plotly**
                     st.subheader("📊 SKU Contribution vs Revenue & ROAS")
 
-                    # Adjusting the figure size dynamically based on screen width
-                    graph_width = max(8, min(10, len(sku_table) * 1.5))  # Keeps width between 8 and 10
-                    graph_height = 5  # Set a reasonable height
-
-                    fig, ax1 = plt.subplots(figsize=(graph_width, graph_height))  # Dynamically adjusted size
-
-                    # Bar plot for Revenue Contribution (%)
-                    sns.barplot(
-                        x=sku_table["SKU Tier"],
-                        y=pd.to_numeric(sku_table["Revenue Contribution (%)"].str.replace('%', ''), errors='coerce'),
-                        palette="Blues_d",
-                        ax=ax1
+                    fig = px.bar(
+                        sku_table, 
+                        x="SKU Tier", 
+                        y="Revenue Contribution (%)", 
+                        text="Revenue Contribution (%)", 
+                        title="SKU Contribution vs Revenue & ROAS",
+                        color="Revenue Contribution (%)",
+                        color_continuous_scale="Blues"
                     )
 
-                    ax1.set_ylabel("Revenue Contribution (%)", color="blue")
-                    ax1.set_xlabel("SKU Tier")
-                    ax1.set_title("SKU Contribution: Revenue vs ROAS")
-                    ax1.set_ylim(0, 110)
+                    fig.update_traces(texttemplate='%{text}%', textposition='outside')
 
-                    # Create secondary Y-axis for ROAS
-                    ax2 = ax1.twinx()
-                    sns.lineplot(
-                        x=sku_table["SKU Tier"],
-                        y=pd.to_numeric(sku_table["ROAS"], errors='coerce'),
-                        color="red",
-                        marker="o",
-                        linewidth=2,
-                        ax=ax2
-                    )
-
-                    ax2.set_ylabel("ROAS", color="red")
-                    ax2.set_ylim(0, max(pd.to_numeric(sku_table["ROAS"], errors='coerce')) + 1)
-
-                    st.pyplot(fig)
+                    # ✅ Auto-Resizes to Fit Streamlit Container
+                    st.plotly_chart(fig, use_container_width=True)
 
                 # 🟢 **TAB 2: DETECTED COLUMNS (Mapping + Processed Data)**
                 with tab2:
