@@ -81,3 +81,6 @@ def assess_product_performance(df: pd.DataFrame):
 
     logging.info("✅ Successfully processed data insights")
     return insights, df
+
+# Ensure module-level function availability
+__all__ = ['assess_product_performance']
