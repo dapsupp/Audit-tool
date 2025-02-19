@@ -40,40 +40,42 @@ def run_web_ui():
 
                 # 🟢 **TAB 1: SKU PERFORMANCE (Main Dashboard)**
                 with tab1:
-                    # Two-column layout for Summary & Pareto Insights
-                    col1, col2 = st.columns(2)
+                    # ✅ **Styled Summary Metrics**
+                    st.subheader("📊 Key Metrics Overview")
+                    
+                    # Define three columns for clean metric cards
+                    col1, col2, col3 = st.columns(3)
 
                     with col1:
-                        st.subheader("📊 Summary Metrics")
-                        summary_df = pd.DataFrame([{
-                            "Total Items": insights["total_item_count"],
-                            "Total Impressions": f"{insights['total_impressions']:,}",
-                            "Total Clicks": f"{insights['total_clicks']:,}",
-                            "Average CTR": f"{insights['average_ctr']:.2f}%",
-                            "Total Conversions": f"{insights['total_conversions']:,}",
-                            "Total Conversion Value": f"£{insights['total_conversion_value']:.2f}",
-                            "Total Cost": f"£{insights['total_cost']:.2f}",
-                            "Average Search Impression Share": f"{insights['average_search_impression_share']:.2f}%",
-                            "ROAS (Conv. Value / Cost)": f"{insights['roas']:.2f}",
-                        }])
-                        st.dataframe(summary_df)
+                        st.metric(label="🛍️ Total Items", value=f"{insights['total_item_count']:,}")
+                        st.metric(label="📈 Total Impressions", value=f"{insights['total_impressions']:,}")
+                        st.metric(label="🎯 Total Clicks", value=f"{insights['total_clicks']:,}")
 
                     with col2:
-                        st.subheader("📈 Pareto Law Insights")
-                        sku_tiers = [5, 10, 20, 50]
-                        sku_table = pd.DataFrame([
-                            {
-                                "SKU Tier": f"Top {threshold}%",
-                                "Number of SKUs": f"{insights[f'top_{threshold}_sku_contribution']['sku_count']:,}",
-                                "Revenue Contribution (%)": f"{insights[f'top_{threshold}_sku_contribution']['percentage']}%",
-                                "Total Conversion Value (£)": f"£{insights[f'top_{threshold}_sku_contribution']['conversion_value']:,}",
-                                "ROAS": f"{insights[f'top_{threshold}_sku_contribution']['roas']:.2f}",
-                            }
-                            for threshold in sku_tiers
-                        ])
-                        st.dataframe(sku_table)
+                        st.metric(label="📊 Average CTR", value=f"{insights['average_ctr']:.2f}%")
+                        st.metric(label="💰 Total Conversion Value", value=f"£{insights['total_conversion_value']:.2f}")
+                        st.metric(label="💵 Total Cost", value=f"£{insights['total_cost']:.2f}")
 
-                    # ✅ **Graph Section - Now Using Plotly**
+                    with col3:
+                        st.metric(label="🔍 Search Impression Share", value=f"{insights['average_search_impression_share']:.2f}%")
+                        st.metric(label="⚡ ROAS (Return on Ad Spend)", value=f"{insights['roas']:.2f}")
+
+                    # ✅ **Pareto Law Insights - Styled Table**
+                    st.subheader("📈 Pareto Law: SKU Contribution Breakdown")
+                    sku_tiers = [5, 10, 20, 50]
+                    sku_table = pd.DataFrame([
+                        {
+                            "SKU Tier": f"Top {threshold}%",
+                            "Number of SKUs": f"{insights[f'top_{threshold}_sku_contribution']['sku_count']:,}",
+                            "Revenue Contribution (%)": f"{insights[f'top_{threshold}_sku_contribution']['percentage']}%",
+                            "Total Conversion Value (£)": f"£{insights[f'top_{threshold}_sku_contribution']['conversion_value']:,}",
+                            "ROAS": f"{insights[f'top_{threshold}_sku_contribution']['roas']:.2f}",
+                        }
+                        for threshold in sku_tiers
+                    ])
+                    st.dataframe(sku_table, height=300)
+
+                    # ✅ **Graph Section - Max Width Control**
                     st.subheader("📊 SKU Contribution vs Revenue & ROAS")
 
                     fig = px.bar(
@@ -88,7 +90,7 @@ def run_web_ui():
 
                     fig.update_traces(texttemplate='%{text}%', textposition='outside')
 
-                    # ✅ Auto-Resizes to Fit Streamlit Container
+                    # ✅ Auto-Resizes to Fit Streamlit Container Without Being Too Large
                     st.plotly_chart(fig, use_container_width=True)
 
                 # 🟢 **TAB 2: DETECTED COLUMNS (Mapping + Processed Data)**
@@ -117,6 +119,9 @@ def run_web_ui():
             except Exception as e:
                 logging.error(f"❌ Unexpected error: {e}")
                 st.error(f"❌ Unexpected error: {e}")
+
+if __name__ == "__main__":
+    run_web_ui()
 
 if __name__ == "__main__":
     run_web_ui()
