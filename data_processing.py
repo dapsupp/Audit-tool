@@ -32,8 +32,7 @@ def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
 
 def validate_columns(df: pd.DataFrame) -> list:
     """
-    Validates that the required columns exist in the DataFrame.
-    If any required columns are missing, returns a list of them.
+    Ensures required columns exist in the dataset.
     """
     required_columns = ['impressions', 'clicks', 'ctr', 'conversions', 'conversion_value', 'conversion_value_cost', 'search_impression_share', 'cost']
     
@@ -49,11 +48,7 @@ def validate_columns(df: pd.DataFrame) -> list:
 
 def assess_product_performance(df: pd.DataFrame):
     """
-    Processes Google PMAX campaign data:
-    - Cleans & maps column names dynamically
-    - Ensures all required columns exist
-    - Converts numeric fields safely, handling comma-separated values
-    - Provides business insights
+    Processes Google PMAX campaign data and extracts insights.
     """
     df = clean_column_names(df)
     
@@ -77,9 +72,9 @@ def assess_product_performance(df: pd.DataFrame):
 
     avg_search_impression_share = df['search_impression_share'].mean() * 100 if 'search_impression_share' in df.columns and df['search_impression_share'].sum() > 0 else 0
 
-    # Pareto Law Analysis (80% of sales driven by how many SKUs)
-    top_skus_count = 0  # Ensure this variable is always defined
-    top_skus_percentage = 0  # Default to zero if calculation fails
+    ### 📊 SECTION 1: PARETO LAW ANALYSIS (80% of Sales Contribution)
+    top_skus_count = 0  
+    top_skus_percentage = 0  
 
     if total_conversion_value > 0 and 'conversion_value' in df.columns:
         df_sorted = df.sort_values(by='conversion_value', ascending=False)
@@ -90,7 +85,19 @@ def assess_product_performance(df: pd.DataFrame):
         top_skus_count = top_skus.shape[0]
         top_skus_percentage = (top_skus_count / df.shape[0]) * 100 if df.shape[0] > 0 else 0
 
+    ### 📊 SECTION 2: SKU CONTRIBUTION SEGMENTATION (5%, 10%, 20%, 50%)
+    sku_thresholds = [5, 10, 20, 50]  # Define SKU performance tiers
+    sku_contribution = {f'top_{threshold}_sku_contribution': 0 for threshold in sku_thresholds}  # Ensure all keys exist
+
+    if total_conversion_value > 0 and 'conversion_value' in df.columns:
+        for threshold in sku_thresholds:
+            top_n_skus = df_sorted.head(int(df.shape[0] * (threshold / 100)))
+            contribution = (top_n_skus['conversion_value'].sum() / total_conversion_value * 100) if total_conversion_value > 0 else 0
+            sku_contribution[f'top_{threshold}_sku_contribution'] = round(contribution, 2)
+
+    # Merge SKU contribution metrics into insights dictionary
     insights = {
+        # Standard Summary Metrics (Unchanged)
         'total_item_count': df.shape[0],
         'total_impressions': float(df['impressions'].sum()),
         'total_clicks': float(df['clicks'].sum()),
@@ -100,8 +107,20 @@ def assess_product_performance(df: pd.DataFrame):
         'total_cost': total_cost,
         'average_search_impression_share': avg_search_impression_share,
         'roas': roas,
-        'top_skus_count': top_skus_count,  # ✅ Ensuring this key is always in the insights dictionary
+
+        # ✅ Pareto Law Metrics (Separate from Summary)
+        'top_skus_count': top_skus_count,
         'top_skus_percentage': top_skus_percentage,
+
+        # ✅ SKU Contribution Segmentation
+        **sku_contribution,
+
+        # ✅ ROAS Insights
+        'high_roas_low_spend_count': df[(df['conversion_value_cost'] > 3) & (df['cost'] < df['cost'].median())].shape[0],
+        'low_roas_high_spend_count': df[(df['conversion_value_cost'] < 1) & (df['cost'] > df['cost'].median())].shape[0],
+
+        # ✅ Long-Tail SKU Impact
+        'low_performing_sku_count': df[df['conversion_value'] < (0.01 * total_conversion_value)].shape[0],
     }
 
     logging.info("✅ Successfully processed data insights")
