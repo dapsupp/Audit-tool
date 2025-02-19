@@ -34,8 +34,8 @@ def run_web_ui():
                 # Debugging: Log detected columns
                 logging.info(f"📂 Detected Columns: {df.columns.tolist()}")
                 st.write("📂 **Detected Columns:**", df.columns.tolist())  # Show detected columns in UI
-
-               try:
+                
+                try:
     insights, df_processed = assess_product_performance(df)
 
     # ✅ Debugging Code (Correctly Indented Inside Try Block)
