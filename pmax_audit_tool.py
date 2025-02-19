@@ -74,10 +74,16 @@ def run_web_ui():
                         ])
                         st.dataframe(sku_table)
 
-                    # Graph Section - Adjusted for better fit
+                    # ✅ **Graph Section (Dynamically Adjusted Size)**
                     st.subheader("📊 SKU Contribution vs Revenue & ROAS")
-                    fig, ax1 = plt.subplots(figsize=(12, 5))  # Wider Graph
 
+                    # Adjusting the figure size dynamically based on screen width
+                    graph_width = max(8, min(10, len(sku_table) * 1.5))  # Keeps width between 8 and 10
+                    graph_height = 5  # Set a reasonable height
+
+                    fig, ax1 = plt.subplots(figsize=(graph_width, graph_height))  # Dynamically adjusted size
+
+                    # Bar plot for Revenue Contribution (%)
                     sns.barplot(
                         x=sku_table["SKU Tier"],
                         y=pd.to_numeric(sku_table["Revenue Contribution (%)"].str.replace('%', ''), errors='coerce'),
