@@ -42,12 +42,23 @@ def run_web_ui():
 
                 # 🟢 **TAB 1: SKU PERFORMANCE (Main Dashboard)**
                 with tab1:
-                    # ✅ **Modern KPI Cards (Now with Proper Spacing)**
+                    # ✅ **Modern KPI Cards (Now with Proper Spacing & Dynamic Layout)**
                     st.subheader("📊 Key Metrics Overview")
 
-                    col1, col2, col3 = st.columns(3)
+                    # ✅ Define Metrics List for Better Maintainability
+                    metrics = [
+                        {"label": "🛍️ Total Items", "value": f"{insights['total_item_count']:,}"},
+                        {"label": "📈 Total Impressions", "value": f"{insights['total_impressions']:,}"},
+                        {"label": "📊 Average CTR", "value": f"{insights['average_ctr']:.2f}%"},
+                        {"label": "💰 Total Conversion Value", "value": f"£{insights['total_conversion_value']:.2f}"},
+                        {"label": "🔍 Search Impression Share", "value": f"{insights['average_search_impression_share']:.2f}%"},
+                        {"label": "⚡ ROAS (Return on Ad Spend)", "value": f"{insights['roas']:.2f}"},
+                    ]
 
-                    # Improved Card Styling with Spacing
+                    # ✅ Define Grid Layout with Two Rows of Three Columns
+                    rows = [metrics[:3], metrics[3:]]  # Split into two rows
+
+                    # ✅ Modern CSS-Based Card Style
                     card_style = """
                         <div style="
                             background-color: #1E1E1E; 
@@ -58,24 +69,21 @@ def run_web_ui():
                             color: white; 
                             font-size: 18px;
                             font-weight: bold;
-                            margin: 10px;  /* ✅ Adds spacing between cards */
+                            margin: 10px;  /* ✅ Adds consistent spacing */
+                            width: 250px;  /* ✅ Ensures all cards are the same width */
+                            min-height: 120px; /* ✅ Prevents different card heights */
                         ">
                             <h3 style="color: white;">{}</h3>
                             <p style="font-size: 30px; margin: 5px 0;">{}</p>
                         </div>
                     """
 
-                    with col1:
-                        st.markdown(card_style.format("🛍️ Total Items", f"{insights['total_item_count']:,}"), unsafe_allow_html=True)
-                        st.markdown(card_style.format("📈 Total Impressions", f"{insights['total_impressions']:,}"), unsafe_allow_html=True)
-
-                    with col2:
-                        st.markdown(card_style.format("📊 Average CTR", f"{insights['average_ctr']:.2f}%"), unsafe_allow_html=True)
-                        st.markdown(card_style.format("💰 Total Conversion Value", f"£{insights['total_conversion_value']:.2f}"), unsafe_allow_html=True)
-
-                    with col3:
-                        st.markdown(card_style.format("🔍 Search Impression Share", f"{insights['average_search_impression_share']:.2f}%"), unsafe_allow_html=True)
-                        st.markdown(card_style.format("⚡ ROAS (Return on Ad Spend)", f"{insights['roas']:.2f}"), unsafe_allow_html=True)
+                    # ✅ Loop Through Rows & Generate Cards
+                    for row in rows:
+                        col1, col2, col3 = st.columns(3)
+                        cols = [col1, col2, col3]  # Map the columns dynamically
+                        for col, metric in zip(cols, row):
+                            col.markdown(card_style.format(metric["label"], metric["value"]), unsafe_allow_html=True)
 
                     # ✅ **Ensure `sku_table` is Defined Before Use**
                     sku_tiers = [5, 10, 20, 50]
