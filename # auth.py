@@ -1,32 +1,33 @@
 import streamlit_authenticator as stauth
-import streamlit as st
 import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 def get_authenticator():
     """
     Handles authentication using Streamlit Authenticator.
-    - Secures credentials using environment variables instead of hardcoded passwords.
+    - Uses hashed passwords stored securely to avoid rehashing on every run.
     """
-    names = ["Staff One", "Staff Two"]
-    usernames = ["staff1", "staff2"]
-    
-    # Retrieve passwords from environment variables
-    passwords = [
-        os.getenv("STAFF1_PASSWORD", "default_password"),
-        os.getenv("STAFF2_PASSWORD", "default_password")
-    ]
+    names = os.getenv("AUTH_NAMES", "Staff One,Staff Two").split(",")
+    usernames = os.getenv("AUTH_USERNAMES", "staff1,staff2").split(",")
+    hashed_passwords = os.getenv("AUTH_HASHED_PASSWORDS", "").split(";")
 
-    # Hash passwords securely
-    hashed_passwords = stauth.Hasher(passwords).generate()
+    if len(usernames) != len(hashed_passwords):
+        raise ValueError("Mismatch between usernames and stored password hashes.")
 
     credentials = {
         "usernames": {
-            usernames[0]: {"name": names[0], "password": hashed_passwords[0]},
-            usernames[1]: {"name": names[1], "password": hashed_passwords[1]},
+            usernames[i]: {"name": names[i], "password": hashed_passwords[i]}
+            for i in range(len(usernames))
         }
     }
 
     authenticator = stauth.Authenticate(
-        credentials, "cookie_name", "signature_key", cookie_expiry_days=30
+        credentials,
+        cookie_name=os.getenv("AUTH_COOKIE_NAME", "cookie_name"),
+        key=os.getenv("AUTH_SIGNATURE_KEY", "signature_key"),
+        cookie_expiry_days=int(os.getenv("AUTH_COOKIE_EXPIRY_DAYS", "30"))
     )
     return authenticator
