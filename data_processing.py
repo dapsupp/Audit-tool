@@ -113,6 +113,33 @@ def assess_product_performance(df: pd.DataFrame):
     total_cost = df["cost"].sum() if "cost" in df.columns else 0
     roas = total_conversion_value / total_cost if total_cost > 0 else 0  # Avoid division by zero
 
+    # ✅ Compute Pareto Law SKU Contribution Breakdown
+    sku_thresholds = [5, 10, 20, 50]
+    sku_contribution = {}
+
+    if total_conversion_value > 0 and "conversion_value" in df.columns and "cost" in df.columns:
+        df_sorted = df.sort_values(by="conversion_value", ascending=False)
+
+        for threshold in sku_thresholds:
+            num_skus = int(df.shape[0] * (threshold / 100))  # Convert % to actual SKU count
+            top_n_skus = df_sorted.head(num_skus)
+
+            # Revenue contribution
+            conversion_value = top_n_skus["conversion_value"].sum()
+            contribution_percentage = (conversion_value / total_conversion_value * 100) if total_conversion_value > 0 else 0
+
+            # ROAS Calculation
+            total_cost_tier = top_n_skus["cost"].sum()
+            roas = (conversion_value / total_cost_tier) if total_cost_tier > 0 else 0  # Prevent division by zero
+
+            # Store results in dictionary format
+            sku_contribution[f"top_{threshold}_sku_contribution"] = {
+                "sku_count": num_skus,
+                "percentage": round(contribution_percentage, 2),
+                "conversion_value": round(conversion_value, 2),
+                "roas": round(roas, 2),
+            }
+
     # ✅ Compute funnel metrics
     funnel_metrics = calculate_funnel_metrics(df)
 
@@ -124,9 +151,10 @@ def assess_product_performance(df: pd.DataFrame):
         "total_conversions": df["conversions"].sum() if "conversions" in df.columns else 0,
         "total_conversion_value": total_conversion_value,
         "total_cost": total_cost,
-        "average_search_impression_share": round(average_search_impr_share, 2),  # ✅ Ensure correct calculation
-        "average_ctr": round(average_ctr, 2),  # ✅ Now properly included
-        "roas": round(roas, 2),  # ✅ Ensure ROAS is included
+        "average_search_impression_share": round(average_search_impr_share, 2),
+        "average_ctr": round(average_ctr, 2),
+        "roas": round(roas, 2),
+        **sku_contribution,  # ✅ Merge Pareto Law contribution
         **funnel_metrics,  # ✅ Merge funnel metrics
     }
 
