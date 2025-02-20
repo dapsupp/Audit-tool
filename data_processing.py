@@ -123,5 +123,3 @@ def assess_product_performance(df: pd.DataFrame):
     }
 
     return insights, df  # ✅ Ensure we return both values
-
-
