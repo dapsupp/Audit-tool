@@ -26,6 +26,45 @@ def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
     
     return df
 
+def calculate_funnel_metrics(df: pd.DataFrame):
+    """
+    Calculates full-funnel efficiency:
+    - Avg impressions per click
+    - Number of products achieving this rate
+    - Avg clicks per conversion
+    - Number of products achieving this rate
+    """
+    if "impressions" in df.columns and "clicks" in df.columns and "conversions" in df.columns:
+        df["impressions_per_click"] = df["impressions"] / df["clicks"]
+        df["clicks_per_conversion"] = df["clicks"] / df["conversions"]
+
+        # Handle division by zero and infinite values
+        df.replace([float("inf"), -float("inf")], None, inplace=True)
+
+        # Compute funnel averages
+        avg_impressions_per_click = df["impressions_per_click"].mean()
+        avg_clicks_per_conversion = df["clicks_per_conversion"].mean()
+
+        # Find how many products meet or exceed these averages
+        num_products_meeting_impressions_per_click = df[df["impressions_per_click"] <= avg_impressions_per_click].shape[0]
+        num_products_meeting_clicks_per_conversion = df[df["clicks_per_conversion"] <= avg_clicks_per_conversion].shape[0]
+
+        # Return insights
+        funnel_metrics = {
+            "avg_impressions_per_click": round(avg_impressions_per_click, 2),
+            "num_products_meeting_impressions_per_click": num_products_meeting_impressions_per_click,
+            "avg_clicks_per_conversion": round(avg_clicks_per_conversion, 2),
+            "num_products_meeting_clicks_per_conversion": num_products_meeting_clicks_per_conversion,
+        }
+        return funnel_metrics
+    else:
+        return {
+            "avg_impressions_per_click": None,
+            "num_products_meeting_impressions_per_click": None,
+            "avg_clicks_per_conversion": None,
+            "num_products_meeting_clicks_per_conversion": None,
+        }
+
 def assess_product_performance(df: pd.DataFrame):
     """
     Processes and cleans Google Ads data for performance analysis.
@@ -97,6 +136,9 @@ def assess_product_performance(df: pd.DataFrame):
                 "roas": round(roas, 2),
             }
 
+    # ✅ Compute funnel metrics
+    funnel_metrics = calculate_funnel_metrics(df)
+
     # ✅ Ensure the function returns both insights & the processed DataFrame
     insights = {
         "total_item_count": df.shape[0],
@@ -109,6 +151,7 @@ def assess_product_performance(df: pd.DataFrame):
         "average_search_impression_share": round(average_search_impr_share, 2),  # ✅ Ensure correct calculation
         "roas": total_conversion_value / total_cost if total_cost > 0 else 0,
         **sku_contribution,  # Merge SKU Contribution insights into the dictionary
+        **funnel_metrics,  # ✅ Merge new funnel metrics
     }
 
     return insights, df  # ✅ Ensure we return both values
