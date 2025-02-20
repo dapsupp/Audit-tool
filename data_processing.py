@@ -111,51 +111,28 @@ def assess_product_performance(df: pd.DataFrame):
     # ✅ Compute overall metrics
     total_conversion_value = df["conversion_value"].sum() if "conversion_value" in df.columns else 0
     total_cost = df["cost"].sum() if "cost" in df.columns else 0
-    roas = total_conversion_value / total_cost if total_cost > 0 else 0  # ✅ Correct ROAS Calculation
 
-    # ✅ Compute Pareto Law SKU Contribution Breakdown
-    sku_thresholds = [5, 10, 20, 50]
-    sku_contribution = {}
+    # ✅ Debugging: Print values to verify correctness
+    print(f"DEBUG - Total Conversion Value: {total_conversion_value}")
+    print(f"DEBUG - Total Cost: {total_cost}")
 
-    if total_conversion_value > 0 and "conversion_value" in df.columns and "cost" in df.columns:
-        df_sorted = df.sort_values(by="conversion_value", ascending=False)
+    # ✅ Correct ROAS Calculation
+    roas = total_conversion_value / total_cost if total_cost > 0 else 0  
 
-        for threshold in sku_thresholds:
-            num_skus = int(df.shape[0] * (threshold / 100))  # Convert % to actual SKU count
-            top_n_skus = df_sorted.head(num_skus)
+    # ✅ Store Correct ROAS in insights
+    insights = {
+        "total_conversion_value": total_conversion_value,
+        "total_cost": total_cost,
+        "roas": round(roas, 2),  # ✅ Ensure rounding happens only after division
+    }
 
-            # Revenue contribution
-            conversion_value = top_n_skus["conversion_value"].sum()
-            contribution_percentage = (conversion_value / total_conversion_value * 100) if total_conversion_value > 0 else 0
-
-            # ROAS Calculation
-            total_cost_tier = top_n_skus["cost"].sum()
-            sku_roas = (conversion_value / total_cost_tier) if total_cost_tier > 0 else 0  # Prevent division by zero
-
-            # Store results in dictionary format
-            sku_contribution[f"top_{threshold}_sku_contribution"] = {
-                "sku_count": num_skus,
-                "percentage": round(contribution_percentage, 2),
-                "conversion_value": round(conversion_value, 2),
-                "roas": round(sku_roas, 2),
-            }
+    # ✅ Debugging: Print the final computed ROAS
+    print(f"DEBUG - Computed ROAS: {roas}")
 
     # ✅ Compute funnel metrics (Inventory Marketing Funnel)
     funnel_metrics = calculate_funnel_metrics(df)
 
     # ✅ Ensure the function returns both insights & the processed DataFrame
-    insights = {
-        "total_item_count": df.shape[0],
-        "total_impressions": df["impressions"].sum() if "impressions" in df.columns else 0,
-        "total_clicks": df["clicks"].sum() if "clicks" in df.columns else 0,
-        "total_conversions": df["conversions"].sum() if "conversions" in df.columns else 0,
-        "total_conversion_value": total_conversion_value,
-        "total_cost": total_cost,
-        "average_search_impression_share": round(average_search_impr_share, 2),
-        "average_ctr": round(average_ctr, 2),
-        "roas": round(roas, 2),  # ✅ Correct ROAS Calculation
-        **sku_contribution,  # ✅ Merge Pareto Law contribution
-        **funnel_metrics,  # ✅ Merge Inventory Marketing Funnel metrics
-    }
+    insights.update(funnel_metrics)  # ✅ Merge funnel metrics
 
     return insights, df  # ✅ Ensure we return both values
