@@ -36,29 +36,31 @@ def run_web_ui():
                 # Define application tabs
                 tab1, tab2, tab3 = st.tabs(["📊 SKU Performance", "📂 Detected Columns", "🔍 Debugging"])
 
-                # 🟢 **TAB 1: SKU PERFORMANCE (Main Dashboard)**
+                # SKU Performance Tab
                 with tab1:
                     st.subheader("📊 Key Metrics Overview")
 
-                    # ✅ Fixing Conversion Value Formatting & Correcting Search Impression Share
-                    correct_search_impression_share = min(insights["average_search_impression_share"], 100.00)
-
-                    # Define key performance metrics with proper formatting
+                    # ✅ Define Key Performance Metrics Including the New Row
                     metrics = [
                         {"label": "🛍️ Total Items", "value": f"{insights['total_item_count']:,}"},
                         {"label": "📈 Total Impressions", "value": f"{insights['total_impressions']:,}"},
                         {"label": "📊 Average CTR", "value": f"{insights['average_ctr']:.2f}%"},
                         {"label": "💰 Total Conversion Value", "value": f"£{insights['total_conversion_value']:,.2f}"},
-                        {"label": "🔍 Search Impression Share", "value": f"{correct_search_impression_share:.2f}%"},
+                        {"label": "🔍 Search Impression Share", "value": f"{insights['average_search_impression_share']:.2f}%"},
                         {"label": "⚡ ROAS (Return on Ad Spend)", "value": f"{insights['roas']:.2f}"},
+                        {"label": "🖱️ Total Clicks", "value": f"{insights['total_clicks']:,}"},
+                        {"label": "💸 Total Cost", "value": f"£{insights['total_cost']:,.2f}"},
+                        {"label": "🔄 Total Conversions", "value": f"{insights['total_conversions']:,}"},
                     ]
 
-                    # Define a structured 3x2 grid layout for KPI metrics
-                    row1 = st.columns(3)
-                    st.markdown("<br>", unsafe_allow_html=True)  # Adds spacing between rows
-                    row2 = st.columns(3)
+                    # ✅ Create a Proper 3x3 Grid Layout
+                    row1 = st.columns(3)  # First row (3 cards)
+                    st.markdown("<br>", unsafe_allow_html=True)  # ✅ Adds Space Between Rows
+                    row2 = st.columns(3)  # Second row (3 cards)
+                    st.markdown("<br>", unsafe_allow_html=True)  # ✅ Adds Space Between Rows
+                    row3 = st.columns(3)  # Third row (3 cards)
 
-                    # Define styling for KPI cards
+                    # ✅ Define Consistent Card Styling
                     card_style = """
                         <div style="
                             background-color: #1E1E1E; 
@@ -78,40 +80,18 @@ def run_web_ui():
                         </div>
                     """
 
-                    # Assign KPI metrics to the first and second rows
-                    for col, metric in zip(row1, metrics[:3]):
+                    # ✅ Assign Metrics to Rows to Ensure Proper Alignment
+                    for col, metric in zip(row1, metrics[:3]):  # First row (Top 3 metrics)
                         col.markdown(card_style.format(metric["label"], metric["value"]), unsafe_allow_html=True)
 
-                    for col, metric in zip(row2, metrics[3:]):
+                    for col, metric in zip(row2, metrics[3:6]):  # Second row (Middle 3 metrics)
                         col.markdown(card_style.format(metric["label"], metric["value"]), unsafe_allow_html=True)
 
-                    # ✅ Add Funnel Metrics
-                    st.subheader("📉 Full-Funnel Performance")
-                    col1, col2 = st.columns(2)
-                    col1.metric("📊 Avg Impressions per Click", f"{insights['avg_impressions_per_click']:,}")
-                    col2.metric("🔍 Products Meeting Impressions-to-Click Rate", f"{insights['num_products_meeting_impressions_per_click']}")
+                    for col, metric in zip(row3, metrics[6:]):  # Third row (Newly Added 3 metrics)
+                        col.markdown(card_style.format(metric["label"], metric["value"]), unsafe_allow_html=True)
 
-                    col3, col4 = st.columns(2)
-                    col3.metric("📊 Avg Clicks per Conversion", f"{insights['avg_clicks_per_conversion']:,}")
-                    col4.metric("🔍 Products Meeting Clicks-to-Conversion Rate", f"{insights['num_products_meeting_clicks_per_conversion']}")
-
-                    # ✅ Funnel Chart Visualization
-                    funnel_fig = go.Figure(go.Funnel(
-                        y=["Impressions", "Clicks", "Conversions"],
-                        x=[
-                            df_processed["impressions"].sum(),
-                            df_processed["clicks"].sum(),
-                            df_processed["conversions"].sum()
-                        ],
-                        textinfo="value+percent initial",
-                    ))
-
-                    funnel_fig.update_layout(title="📉 Funnel View: Impressions → Clicks → Conversions")
-                    st.plotly_chart(funnel_fig, use_container_width=True)
-
-                    # ✅ Pareto Law SKU Contribution Breakdown
+                    # ✅ SKU Contribution Breakdown (Pareto Law)
                     st.subheader("📈 Pareto Law: SKU Contribution Breakdown")
-
                     sku_tiers = [5, 10, 20, 50]
                     sku_table = pd.DataFrame([
                         {
@@ -123,10 +103,9 @@ def run_web_ui():
                         }
                         for threshold in sku_tiers
                     ])
-
                     st.dataframe(sku_table, height=300)
 
-                    # ✅ SKU Contribution Chart
+                    # ✅ SKU Contribution Graph
                     st.subheader("📊 SKU Contribution vs Revenue & ROAS")
                     st.markdown("<div style='display: flex; justify-content: center;'>", unsafe_allow_html=True)
 
@@ -141,7 +120,6 @@ def run_web_ui():
                         width=700,
                         height=300
                     )
-
                     fig.update_traces(texttemplate='%{text}%', textposition='outside')
                     st.plotly_chart(fig, use_container_width=False)
                     st.markdown("</div>", unsafe_allow_html=True)
