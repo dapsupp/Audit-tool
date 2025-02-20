@@ -20,19 +20,50 @@ def run_web_ui():
                 # Process data to extract insights
                 insights, df_processed = assess_product_performance(df)
 
-                # ✅ Debugging: Ensure the displayed ROAS matches the computed ROAS
-                print(f"DEBUG - Displayed ROAS: {insights['roas']}")
+                # ✅ Debugging: Ensure all key metrics exist before displaying
+                print(f"DEBUG - Insights Dictionary: {insights.keys()}")
 
-                # ✅ Ensure ROAS is pulled directly from insights
+                # ✅ Ensure all key metrics are displayed
                 metrics = [
-                    {"label": "⚡ ROAS (Return on Ad Spend)", "value": f"{insights['roas']}"},
+                    {"label": "🛍️ Total Items", "value": f"{insights['total_item_count']:,}"},
+                    {"label": "📈 Total Impressions", "value": f"{insights['total_impressions']:,}"},
+                    {"label": "📊 Average CTR", "value": f"{insights['average_ctr']:.2f}%"},
+                    {"label": "💰 Total Conversion Value", "value": f"£{insights['total_conversion_value']:,.2f}"},
+                    {"label": "🔍 Search Impression Share", "value": f"{insights['average_search_impression_share']:.2f}%"},
+                    {"label": "⚡ ROAS (Return on Ad Spend)", "value": f"{insights['roas']:.2f}"},
+                    {"label": "🖱️ Total Clicks", "value": f"{insights['total_clicks']:,}"},
+                    {"label": "💸 Total Cost", "value": f"£{insights['total_cost']:,.2f}"},
+                    {"label": "🔄 Total Conversions", "value": f"{insights['total_conversions']:,}"},
                 ]
 
                 st.subheader("📊 Key Metrics Overview")
                 row1 = st.columns(3)
+                row2 = st.columns(3)
+                row3 = st.columns(3)
 
-                for col, metric in zip(row1, metrics):
+                for col, metric in zip(row1, metrics[:3]):
                     col.metric(metric["label"], metric["value"])
+
+                for col, metric in zip(row2, metrics[3:6]):
+                    col.metric(metric["label"], metric["value"])
+
+                for col, metric in zip(row3, metrics[6:]):
+                    col.metric(metric["label"], metric["value"])
+
+                # ✅ SKU Contribution Breakdown (Pareto Law)
+                st.subheader("📈 Pareto Law: SKU Contribution Breakdown")
+                sku_tiers = [5, 10, 20, 50]
+                sku_table = pd.DataFrame([
+                    {
+                        "SKU Tier": f"Top {threshold}%",
+                        "Number of SKUs": f"{insights[f'top_{threshold}_sku_contribution']['sku_count']:,}",
+                        "Revenue Contribution (%)": f"{insights[f'top_{threshold}_sku_contribution']['percentage']}%",
+                        "Total Conversion Value (£)": f"£{insights[f'top_{threshold}_sku_contribution']['conversion_value']:,}",
+                        "ROAS": f"{insights[f'top_{threshold}_sku_contribution']['roas']:.2f}",
+                    }
+                    for threshold in sku_tiers
+                ])
+                st.dataframe(sku_table, height=300)
 
             except KeyError as e:
                 logging.error(f"❌ Missing columns: {e}")
