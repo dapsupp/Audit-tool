@@ -1,6 +1,31 @@
 import pandas as pd
 import logging
 
+def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Cleans and standardizes DataFrame column names to lowercase with underscores.
+    """
+    df.columns = (
+        df.columns
+        .str.strip()
+        .str.lower()
+        .str.replace(' ', '_')
+        .str.replace('.', '_')
+    )
+    
+    rename_mapping = {
+        'impr_': 'impressions',
+        'conv__value': 'conversion_value',
+        'conv__value_/_cost': 'conversion_value_cost',
+        'search_impr_share': 'search_impression_share',
+        'search_impr__share': 'search_impression_share',  # Handle variations
+        'cost': 'cost'
+    }
+    
+    df.rename(columns=rename_mapping, inplace=True)
+    
+    return df
+
 def assess_product_performance(df: pd.DataFrame):
     """
     Processes and cleans Google Ads data for performance analysis.
