@@ -108,6 +108,11 @@ def assess_product_performance(df: pd.DataFrame):
     else:
         average_ctr = 0  # Default to 0 if column is missing
 
+    # ✅ Compute overall metrics
+    total_conversion_value = df["conversion_value"].sum() if "conversion_value" in df.columns else 0
+    total_cost = df["cost"].sum() if "cost" in df.columns else 0
+    roas = total_conversion_value / total_cost if total_cost > 0 else 0  # Avoid division by zero
+
     # ✅ Compute funnel metrics
     funnel_metrics = calculate_funnel_metrics(df)
 
@@ -117,8 +122,11 @@ def assess_product_performance(df: pd.DataFrame):
         "total_impressions": df["impressions"].sum() if "impressions" in df.columns else 0,
         "total_clicks": df["clicks"].sum() if "clicks" in df.columns else 0,
         "total_conversions": df["conversions"].sum() if "conversions" in df.columns else 0,
+        "total_conversion_value": total_conversion_value,
+        "total_cost": total_cost,
         "average_search_impression_share": round(average_search_impr_share, 2),  # ✅ Ensure correct calculation
         "average_ctr": round(average_ctr, 2),  # ✅ Now properly included
+        "roas": round(roas, 2),  # ✅ Ensure ROAS is included
         **funnel_metrics,  # ✅ Merge funnel metrics
     }
 
