@@ -25,7 +25,7 @@ def convert_numeric_columns(df: pd.DataFrame, columns: list) -> pd.DataFrame:
     Converts specific columns to numeric format safely.
     """
     for col in columns:
-        if col in df.columns:
+        if (col in df.columns):
             df[col] = pd.to_numeric(df[col].astype(str).str.replace(r"[^0-9.]", "", regex=True), errors="coerce").fillna(0)
     return df
 
@@ -37,11 +37,11 @@ def assess_product_performance(df: pd.DataFrame):
     numeric_cols = ["impressions", "clicks", "conversions", "conversion_value", "cost"]
     df = convert_numeric_columns(df, numeric_cols)
 
-   insights = {
-    "total_conversion_value": df["conversion_value"].sum() if "conversion_value" in df.columns else 0,
-    "total_cost": df["cost"].sum() if "cost" in df.columns else 0,
-    "total_item_count": len(df)  # Add this line to capture the total number of rows
-}
+    insights = {
+        "total_conversion_value": df["conversion_value"].sum() if "conversion_value" in df.columns else 0,
+        "total_cost": df["cost"].sum() if "cost" in df.columns else 0,
+        "total_item_count": len(df)  # Add this line to capture the total number of rows
+    }
     insights["roas"] = insights["total_conversion_value"] / insights["total_cost"] if insights["total_cost"] > 0 else 0
 
     logging.info(f"Insights: {insights}")
