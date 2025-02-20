@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import logging
 from data_processing import assess_product_performance
 
@@ -44,15 +45,15 @@ def run_web_ui():
                     st.subheader("📊 Key Metrics Overview")
 
                     # ✅ Fixing Conversion Value Formatting & Correcting Search Impression Share
-                    correct_search_impression_share = min(insights["average_search_impression_share"], 100.00)  # ✅ Fixes incorrect % calculation
+                    correct_search_impression_share = min(insights["average_search_impression_share"], 100.00)
 
                     # Define key performance metrics with proper formatting
                     metrics = [
                         {"label": "🛍️ Total Items", "value": f"{insights['total_item_count']:,}"},
                         {"label": "📈 Total Impressions", "value": f"{insights['total_impressions']:,}"},
                         {"label": "📊 Average CTR", "value": f"{insights['average_ctr']:.2f}%"},
-                        {"label": "💰 Total Conversion Value", "value": f"£{insights['total_conversion_value']:,.2f}"},  # ✅ Adds commas
-                        {"label": "🔍 Search Impression Share", "value": f"{correct_search_impression_share:.2f}%"},  # ✅ Fixes incorrect calculation
+                        {"label": "💰 Total Conversion Value", "value": f"£{insights['total_conversion_value']:,.2f}"},
+                        {"label": "🔍 Search Impression Share", "value": f"{correct_search_impression_share:.2f}%"},
                         {"label": "⚡ ROAS (Return on Ad Spend)", "value": f"{insights['roas']:.2f}"},
                     ]
 
@@ -88,6 +89,32 @@ def run_web_ui():
                     for col, metric in zip(row2, metrics[3:]):
                         col.markdown(card_style.format(metric["label"], metric["value"]), unsafe_allow_html=True)
 
+                    # ✅ Add Funnel Metrics
+                    st.subheader("📉 Full-Funnel Performance")
+
+                    # Display funnel metrics as KPI cards
+                    col1, col2 = st.columns(2)
+                    col1.metric("📊 Avg Impressions per Click", f"{insights['avg_impressions_per_click']:,}")
+                    col2.metric("🔍 Products Meeting Impressions-to-Click Rate", f"{insights['num_products_meeting_impressions_per_click']}")
+
+                    col3, col4 = st.columns(2)
+                    col3.metric("📊 Avg Clicks per Conversion", f"{insights['avg_clicks_per_conversion']:,}")
+                    col4.metric("🔍 Products Meeting Clicks-to-Conversion Rate", f"{insights['num_products_meeting_clicks_per_conversion']}")
+
+                    # ✅ Funnel Chart Visualization
+                    funnel_fig = go.Figure(go.Funnel(
+                        y=["Impressions", "Clicks", "Conversions"],
+                        x=[
+                            df_processed["impressions"].sum(),
+                            df_processed["clicks"].sum(),
+                            df_processed["conversions"].sum()
+                        ],
+                        textinfo="value+percent initial",
+                    ))
+
+                    funnel_fig.update_layout(title="📉 Funnel View: Impressions → Clicks → Conversions")
+                    st.plotly_chart(funnel_fig, use_container_width=True)
+
                     # Add spacing before the next section
                     st.markdown("<br><br>", unsafe_allow_html=True)
 
@@ -107,34 +134,6 @@ def run_web_ui():
                     # Display SKU contribution breakdown table
                     st.subheader("📈 Pareto Law: SKU Contribution Breakdown")
                     st.dataframe(sku_table, height=300)
-
-                    # Add a download button for SKU data
-                    st.download_button(
-                        label="📥 Download SKU Data",
-                        data=sku_table.to_csv(index=False).encode("utf-8"),
-                        file_name="sku_data.csv",
-                        mime="text/csv"
-                    )
-
-                    # Generate SKU performance visualization
-                    st.subheader("📊 SKU Contribution vs Revenue & ROAS")
-                    st.markdown("<div style='display: flex; justify-content: center;'>", unsafe_allow_html=True)
-
-                    fig = px.bar(
-                        sku_table,
-                        x="SKU Tier",
-                        y="Revenue Contribution (%)",
-                        text="Revenue Contribution (%)",
-                        title="SKU Contribution vs Revenue & ROAS",
-                        color="Revenue Contribution (%)",
-                        color_continuous_scale="Blues",
-                        width=700,
-                        height=300
-                    )
-
-                    fig.update_traces(texttemplate='%{text}%', textposition='outside')
-                    st.plotly_chart(fig, use_container_width=False)
-                    st.markdown("</div>", unsafe_allow_html=True)
 
                 # Detected Columns Tab
                 with tab2:
