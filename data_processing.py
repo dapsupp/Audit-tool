@@ -111,7 +111,7 @@ def assess_product_performance(df: pd.DataFrame):
     # ✅ Compute overall metrics
     total_conversion_value = df["conversion_value"].sum() if "conversion_value" in df.columns else 0
     total_cost = df["cost"].sum() if "cost" in df.columns else 0
-    roas = total_conversion_value / total_cost if total_cost > 0 else 0  # Avoid division by zero
+    roas = total_conversion_value / total_cost if total_cost > 0 else 0  # ✅ Fixes ROAS Calculation
 
     # ✅ Compute Pareto Law SKU Contribution Breakdown
     sku_thresholds = [5, 10, 20, 50]
@@ -140,7 +140,7 @@ def assess_product_performance(df: pd.DataFrame):
                 "roas": round(roas, 2),
             }
 
-    # ✅ Compute funnel metrics
+    # ✅ Compute funnel metrics (Inventory Marketing Funnel)
     funnel_metrics = calculate_funnel_metrics(df)
 
     # ✅ Ensure the function returns both insights & the processed DataFrame
@@ -153,9 +153,9 @@ def assess_product_performance(df: pd.DataFrame):
         "total_cost": total_cost,
         "average_search_impression_share": round(average_search_impr_share, 2),
         "average_ctr": round(average_ctr, 2),
-        "roas": round(roas, 2),
+        "roas": round(roas, 2),  # ✅ Fixes ROAS Calculation
         **sku_contribution,  # ✅ Merge Pareto Law contribution
-        **funnel_metrics,  # ✅ Merge funnel metrics
+        **funnel_metrics,  # ✅ Merge Inventory Marketing Funnel metrics
     }
 
     return insights, df  # ✅ Ensure we return both values
