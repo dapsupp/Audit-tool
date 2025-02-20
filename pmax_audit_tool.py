@@ -28,11 +28,7 @@ def run_web_ui():
     if uploaded_file:
         with st.spinner("Processing file..."):
             try:
-                # Read uploaded CSV file with error handling for encoding issues
-                try:
-                    df = pd.read_csv(uploaded_file, encoding="utf-8", on_bad_lines="skip")
-                except UnicodeDecodeError:
-                    df = pd.read_csv(uploaded_file, encoding="ISO-8859-1", on_bad_lines="skip")
+                df = pd.read_csv(uploaded_file, encoding="utf-8", on_bad_lines="skip")
 
                 # Process data to extract insights
                 insights, df_processed = assess_product_performance(df)
@@ -44,104 +40,30 @@ def run_web_ui():
                 with tab1:
                     st.subheader("📊 Key Metrics Overview")
 
-                    # ✅ Fixing Conversion Value Formatting & Correcting Search Impression Share
-                    correct_search_impression_share = min(insights["average_search_impression_share"], 100.00)
+                    # ✅ Ensure funnel metrics exist before displaying
+                    if "avg_impressions_per_click" in insights:
+                        st.subheader("📉 Full-Funnel Performance")
+                        col1, col2 = st.columns(2)
+                        col1.metric("📊 Avg Impressions per Click", f"{insights['avg_impressions_per_click']:,}")
+                        col2.metric("🔍 Products Meeting Impressions-to-Click Rate", f"{insights['num_products_meeting_impressions_per_click']}")
 
-                    # Define key performance metrics with proper formatting
-                    metrics = [
-                        {"label": "🛍️ Total Items", "value": f"{insights['total_item_count']:,}"},
-                        {"label": "📈 Total Impressions", "value": f"{insights['total_impressions']:,}"},
-                        {"label": "📊 Average CTR", "value": f"{insights['average_ctr']:.2f}%"},
-                        {"label": "💰 Total Conversion Value", "value": f"£{insights['total_conversion_value']:,.2f}"},
-                        {"label": "🔍 Search Impression Share", "value": f"{correct_search_impression_share:.2f}%"},
-                        {"label": "⚡ ROAS (Return on Ad Spend)", "value": f"{insights['roas']:.2f}"},
-                    ]
+                        col3, col4 = st.columns(2)
+                        col3.metric("📊 Avg Clicks per Conversion", f"{insights['avg_clicks_per_conversion']:,}")
+                        col4.metric("🔍 Products Meeting Clicks-to-Conversion Rate", f"{insights['num_products_meeting_clicks_per_conversion']}")
 
-                    # Define a structured 3x2 grid layout for KPI metrics
-                    row1 = st.columns(3)
-                    st.markdown("<br>", unsafe_allow_html=True)  # Adds spacing between rows
-                    row2 = st.columns(3)
+                        # ✅ Funnel Chart Visualization
+                        funnel_fig = go.Figure(go.Funnel(
+                            y=["Impressions", "Clicks", "Conversions"],
+                            x=[
+                                df_processed["impressions"].sum(),
+                                df_processed["clicks"].sum(),
+                                df_processed["conversions"].sum()
+                            ],
+                            textinfo="value+percent initial",
+                        ))
 
-                    # Define styling for KPI cards
-                    card_style = """
-                        <div style="
-                            background-color: #1E1E1E; 
-                            padding: 20px; 
-                            border-radius: 10px; 
-                            text-align: center; 
-                            box-shadow: 0px 4px 8px rgba(255, 255, 255, 0.2);
-                            color: white; 
-                            font-size: 18px;
-                            font-weight: bold;
-                            width: 100%;
-                            min-height: 120px;
-                            margin: 5px 0 15px 0;
-                        ">
-                            <h3 style="color: white;">{}</h3>
-                            <p style="font-size: 30px; margin: 5px 0;">{}</p>
-                        </div>
-                    """
-
-                    # Assign KPI metrics to the first and second rows
-                    for col, metric in zip(row1, metrics[:3]):
-                        col.markdown(card_style.format(metric["label"], metric["value"]), unsafe_allow_html=True)
-
-                    for col, metric in zip(row2, metrics[3:]):
-                        col.markdown(card_style.format(metric["label"], metric["value"]), unsafe_allow_html=True)
-
-                    # ✅ Add Funnel Metrics
-                    st.subheader("📉 Full-Funnel Performance")
-
-                    # Display funnel metrics as KPI cards
-                    col1, col2 = st.columns(2)
-                    col1.metric("📊 Avg Impressions per Click", f"{insights['avg_impressions_per_click']:,}")
-                    col2.metric("🔍 Products Meeting Impressions-to-Click Rate", f"{insights['num_products_meeting_impressions_per_click']}")
-
-                    col3, col4 = st.columns(2)
-                    col3.metric("📊 Avg Clicks per Conversion", f"{insights['avg_clicks_per_conversion']:,}")
-                    col4.metric("🔍 Products Meeting Clicks-to-Conversion Rate", f"{insights['num_products_meeting_clicks_per_conversion']}")
-
-                    # ✅ Funnel Chart Visualization
-                    funnel_fig = go.Figure(go.Funnel(
-                        y=["Impressions", "Clicks", "Conversions"],
-                        x=[
-                            df_processed["impressions"].sum(),
-                            df_processed["clicks"].sum(),
-                            df_processed["conversions"].sum()
-                        ],
-                        textinfo="value+percent initial",
-                    ))
-
-                    funnel_fig.update_layout(title="📉 Funnel View: Impressions → Clicks → Conversions")
-                    st.plotly_chart(funnel_fig, use_container_width=True)
-
-                    # Add spacing before the next section
-                    st.markdown("<br><br>", unsafe_allow_html=True)
-
-                    # Generate SKU contribution breakdown table
-                    sku_tiers = [5, 10, 20, 50]
-                    sku_table = pd.DataFrame([
-                        {
-                            "SKU Tier": f"Top {threshold}%",
-                            "Number of SKUs": f"{insights[f'top_{threshold}_sku_contribution']['sku_count']:,}",
-                            "Revenue Contribution (%)": f"{insights[f'top_{threshold}_sku_contribution']['percentage']}%",
-                            "Total Conversion Value (£)": f"£{insights[f'top_{threshold}_sku_contribution']['conversion_value']:,}",
-                            "ROAS": f"{insights[f'top_{threshold}_sku_contribution']['roas']:.2f}",
-                        }
-                        for threshold in sku_tiers
-                    ])
-
-                    # Display SKU contribution breakdown table
-                    st.subheader("📈 Pareto Law: SKU Contribution Breakdown")
-                    st.dataframe(sku_table, height=300)
-
-                # Detected Columns Tab
-                with tab2:
-                    st.subheader("📂 Detected Columns")
-                    st.write(df.columns.tolist())
-
-                    st.subheader("📂 Processed Data Preview")
-                    st.dataframe(df_processed, height=600)
+                        funnel_fig.update_layout(title="📉 Funnel View: Impressions → Clicks → Conversions")
+                        st.plotly_chart(funnel_fig, use_container_width=True)
 
                 # Debugging Tab
                 with tab3:
