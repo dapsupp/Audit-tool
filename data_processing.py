@@ -18,7 +18,7 @@ def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
         'conv__value': 'conversion_value',
         'conv__value_/_cost': 'conversion_value_cost',
         'search_impr_share': 'search_impression_share',
-        'search_impr__share': 'search_impression_share',  # Ensure variations are handled
+        'search_impr__share': 'search_impression_share',  # Handle variations
         'cost': 'cost'
     }
     
@@ -77,15 +77,36 @@ def assess_product_performance(df: pd.DataFrame):
         if col in df.columns:
             df[col] = pd.to_numeric(df[col].astype(str).str.replace(r'[^0-9.]', '', regex=True), errors='coerce').fillna(0)
 
-    # Compute funnel metrics
-    funnel_metrics = calculate_funnel_metrics(df)  # ✅ Ensure this is called
+    # ✅ Ensure 'search_impression_share' is correctly processed
+    if "search_impression_share" in df.columns:
+        df["search_impression_share"] = df["search_impression_share"].astype(str)
 
-    # Return insights
+        # Handle missing values and "< 10" cases
+        df["search_impression_share"] = (
+            df["search_impression_share"]
+            .replace("--", None)  # Convert "--" to NaN
+            .replace("< 10", "5")  # Convert "< 10" to midpoint value (5%)
+            .str.rstrip("%")  # Remove percentage symbols
+        )
+
+        # Convert to numeric format safely
+        df["search_impression_share"] = pd.to_numeric(df["search_impression_share"], errors="coerce")
+
+        # ✅ Ensure Search Impression Share is correctly averaged
+        average_search_impr_share = df["search_impression_share"].mean()
+    else:
+        average_search_impr_share = 0  # Default to 0 if column is missing
+
+    # ✅ Compute funnel metrics
+    funnel_metrics = calculate_funnel_metrics(df)
+
+    # ✅ Ensure the function returns both insights & the processed DataFrame
     insights = {
         "total_item_count": df.shape[0],
         "total_impressions": df["impressions"].sum() if "impressions" in df.columns else 0,
         "total_clicks": df["clicks"].sum() if "clicks" in df.columns else 0,
         "total_conversions": df["conversions"].sum() if "conversions" in df.columns else 0,
+        "average_search_impression_share": round(average_search_impr_share, 2),  # ✅ Ensure correct calculation
         **funnel_metrics,  # ✅ Merge funnel metrics
     }
 
