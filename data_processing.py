@@ -97,6 +97,17 @@ def assess_product_performance(df: pd.DataFrame):
     else:
         average_search_impr_share = 0  # Default to 0 if column is missing
 
+    # ✅ Fix: Clean CTR column to remove % and handle concatenated values
+    if "ctr" in df.columns:
+        df['ctr'] = df['ctr'].astype(str).str.replace('%', '', regex=False)  # Remove % symbols
+        df['ctr'] = df['ctr'].str.extract(r'(\d+\.\d+)')  # Extract only numeric values
+        df['ctr'] = pd.to_numeric(df['ctr'], errors='coerce').fillna(0) / 100  # Convert to decimal format
+
+        # ✅ Ensure 'average_ctr' is included in insights
+        average_ctr = df["ctr"].mean() * 100 if "ctr" in df.columns else 0
+    else:
+        average_ctr = 0  # Default to 0 if column is missing
+
     # ✅ Compute funnel metrics
     funnel_metrics = calculate_funnel_metrics(df)
 
@@ -107,7 +118,10 @@ def assess_product_performance(df: pd.DataFrame):
         "total_clicks": df["clicks"].sum() if "clicks" in df.columns else 0,
         "total_conversions": df["conversions"].sum() if "conversions" in df.columns else 0,
         "average_search_impression_share": round(average_search_impr_share, 2),  # ✅ Ensure correct calculation
+        "average_ctr": round(average_ctr, 2),  # ✅ Now properly included
         **funnel_metrics,  # ✅ Merge funnel metrics
     }
 
     return insights, df  # ✅ Ensure we return both values
+
+
