@@ -191,4 +191,26 @@ def assess_product_performance(df: pd.DataFrame):
             sku_contribution[f"top_{threshold}_sku_contribution"] = {
                 "sku_count": num_skus,
                 "percentage": round(contribution_percentage, 2),
-                "conversion_value": round(conversion
+                "conversion_value": round(conversion_value, 2),
+                "roas": round(sku_roas, 2),
+            }
+
+    # Compute funnel metrics (enhanced with categorization and variance)
+    funnel_metrics = calculate_funnel_metrics(df)
+
+    # Ensure the function returns both insights & the processed DataFrame
+    insights = {
+        "total_item_count": df.shape[0],
+        "total_impressions": df["impressions"].sum() if "impressions" in df.columns else 0,
+        "total_clicks": df["clicks"].sum() if "clicks" in df.columns else 0,
+        "total_conversions": df["conversions"].sum() if "conversions" in df.columns else 0,
+        "total_conversion_value": total_conversion_value,
+        "total_cost": total_cost,
+        "average_search_impression_share": round(average_search_impr_share, 2),
+        "average_ctr": round(average_ctr, 2),
+        "roas": round(roas, 2),
+        **sku_contribution,
+        **funnel_metrics,  # Merge enhanced funnel metrics
+    }
+
+    return insights, df
