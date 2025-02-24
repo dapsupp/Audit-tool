@@ -2,7 +2,6 @@ import streamlit_authenticator as stauth
 import os
 from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv()
 
 def get_authenticator():
@@ -10,12 +9,19 @@ def get_authenticator():
     Handles authentication using Streamlit Authenticator.
     - Uses hashed passwords stored securely to avoid rehashing on every run.
     """
-    names = os.getenv("AUTH_NAMES", "Staff One,Staff Two").split(",")
-    usernames = os.getenv("AUTH_USERNAMES", "staff1,staff2").split(",")
-    hashed_passwords = os.getenv("AUTH_HASHED_PASSWORDS", "").split(";")
+    names = os.getenv("AUTH_NAMES")
+    usernames = os.getenv("AUTH_USERNAMES")
+    hashed_passwords = os.getenv("AUTH_HASHED_PASSWORDS")
 
-    if len(usernames) != len(hashed_passwords):
-        raise ValueError("Mismatch between usernames and stored password hashes.")
+    if not all([names, usernames, hashed_passwords]):
+        raise ValueError("Missing required environment variables: AUTH_NAMES, AUTH_USERNAMES, AUTH_HASHED_PASSWORDS")
+
+    names = names.split(",")
+    usernames = usernames.split(",")
+    hashed_passwords = hashed_passwords.split(";")
+
+    if not (len(names) == len(usernames) == len(hashed_passwords)):
+        raise ValueError("Mismatch in lengths of names, usernames, and hashed passwords.")
 
     credentials = {
         "usernames": {
