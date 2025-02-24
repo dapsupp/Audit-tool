@@ -40,7 +40,7 @@ def run_web_ui():
                 with tab1:
                     st.subheader("📊 Key Metrics Overview")
 
-                    # ✅ Define Key Performance Metrics Including the New Row
+                    # Define Key Performance Metrics Including the New Row
                     metrics = [
                         {"label": "🛍️ Total Items", "value": f"{insights['total_item_count']:,}"},
                         {"label": "📈 Total Impressions", "value": f"{insights['total_impressions']:,}"},
@@ -53,14 +53,14 @@ def run_web_ui():
                         {"label": "🔄 Total Conversions", "value": f"{insights['total_conversions']:,}"},
                     ]
 
-                    # ✅ Create a Proper 3x3 Grid Layout
+                    # Create a Proper 3x3 Grid Layout
                     row1 = st.columns(3)  # First row (3 cards)
-                    st.markdown("<br>", unsafe_allow_html=True)  # ✅ Adds Space Between Rows
+                    st.markdown("<br>", unsafe_allow_html=True)  # Adds Space Between Rows
                     row2 = st.columns(3)  # Second row (3 cards)
-                    st.markdown("<br>", unsafe_allow_html=True)  # ✅ Adds Space Between Rows
+                    st.markdown("<br>", unsafe_allow_html=True)  # Adds Space Between Rows
                     row3 = st.columns(3)  # Third row (3 cards)
 
-                    # ✅ Define Consistent Card Styling
+                    # Define Consistent Card Styling
                     card_style = """
                         <div style="
                             background-color: #1E1E1E; 
@@ -80,7 +80,7 @@ def run_web_ui():
                         </div>
                     """
 
-                    # ✅ Assign Metrics to Rows to Ensure Proper Alignment
+                    # Assign Metrics to Rows to Ensure Proper Alignment
                     for col, metric in zip(row1, metrics[:3]):  # First row (Top 3 metrics)
                         col.markdown(card_style.format(metric["label"], metric["value"]), unsafe_allow_html=True)
 
@@ -90,7 +90,19 @@ def run_web_ui():
                     for col, metric in zip(row3, metrics[6:]):  # Third row (Newly Added 3 metrics)
                         col.markdown(card_style.format(metric["label"], metric["value"]), unsafe_allow_html=True)
 
-                    # ✅ SKU Contribution Breakdown (Pareto Law)
+                    # Marketing Funnel Section
+                    st.subheader("📊 Marketing Funnel")
+
+                    funnel_metrics = [
+                        {"label": "📊 Avg. Impressions per Click", "value": f"{insights['overall_impressions_per_click']:.2f}"},
+                        {"label": "📊 Avg. Clicks per Conversion", "value": f"{insights['overall_clicks_per_conversion']:.2f}"},
+                    ]
+
+                    funnel_row = st.columns(2)
+                    for col, metric in zip(funnel_row, funnel_metrics):
+                        col.markdown(card_style.format(metric["label"], metric["value"]), unsafe_allow_html=True)
+
+                    # SKU Contribution Breakdown (Pareto Law)
                     st.subheader("📈 Pareto Law: SKU Contribution Breakdown")
                     sku_tiers = [5, 10, 20, 50]
                     sku_table = pd.DataFrame([
@@ -105,7 +117,7 @@ def run_web_ui():
                     ])
                     st.dataframe(sku_table, height=300)
 
-                    # ✅ SKU Contribution Graph
+                    # SKU Contribution Graph
                     st.subheader("📊 SKU Contribution vs Revenue & ROAS")
                     st.markdown("<div style='display: flex; justify-content: center;'>", unsafe_allow_html=True)
 
