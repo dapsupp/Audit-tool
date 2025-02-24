@@ -80,12 +80,14 @@ def run_web_ui():
                         </div>
                     """
 
-                    # Assign Metrics to Rows
-                    for col, metric in zip(row1, metrics[:3]):
+                    # Assign Metrics to Rows to Ensure Proper Alignment
+                    for col, metric in zip(row1, metrics[:3]):  # First row (Top 3 metrics)
                         col.markdown(card_style.format(metric["label"], metric["value"]), unsafe_allow_html=True)
-                    for col, metric in zip(row2, metrics[3:6]):
+
+                    for col, metric in zip(row2, metrics[3:6]):  # Second row (Middle 3 metrics)
                         col.markdown(card_style.format(metric["label"], metric["value"]), unsafe_allow_html=True)
-                    for col, metric in zip(row3, metrics[6:]):
+
+                    for col, metric in zip(row3, metrics[6:]):  # Third row (Newly Added 3 metrics)
                         col.markdown(card_style.format(metric["label"], metric["value"]), unsafe_allow_html=True)
 
                     # SKU Contribution Breakdown (Pareto Law)
@@ -105,6 +107,8 @@ def run_web_ui():
 
                     # SKU Contribution Graph
                     st.subheader("📊 SKU Contribution vs Revenue & ROAS")
+                    st.markdown("<div style='display: flex; justify-content: center;'>", unsafe_allow_html=True)
+
                     fig = px.bar(
                         sku_table,
                         x="SKU Tier",
@@ -117,50 +121,132 @@ def run_web_ui():
                         height=300
                     )
                     fig.update_traces(texttemplate='%{text}%', textposition='outside')
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig, use_container_width=False)
+                    st.markdown("</div>", unsafe_allow_html=True)
 
                     # New Marketing Funnel Insights Section
-                    st.subheader("📊 Marketing Funnel Insights")
+                    st.markdown("### 📊 Marketing Funnel Insights")
+                    st.markdown("<hr style='border: 1px solid #333;'>", unsafe_allow_html=True)
 
-                    # Key Takeaways
-                    st.markdown("**Key Takeaways:**")
-                    st.markdown(f"- **Click Generation**: {insights['ipc_high_percent']:.2f}% of products efficiently turn impressions into clicks.")
-                    st.markdown(f"- **Conversion Efficiency**: {insights['cpc_high_percent']:.2f}% of products efficiently convert clicks into conversions.")
-                    st.markdown(f"- **Performance Variability**: High standard deviation in clicks per conversion ({insights['std_clicks_per_conversion']:.2f}) indicates significant differences across products.")
+                    # Interactive Summary
+                    with st.expander("📋 Performance Summary", expanded=True):
+                        if insights['ipc_low_percent'] > 50 or insights['cpc_low_percent'] > 50:
+                            st.markdown(
+                                "<div style='background-color: #FFF3E0; padding: 10px; border-radius: 5px;'>"
+                                "⚠️ <b>Attention Needed</b>: High number of low-performing products detected.</div>",
+                                unsafe_allow_html=True
+                            )
+                            st.write("Consider focusing on underperforming areas below.")
+                        else:
+                            st.markdown(
+                                "<div style='background-color: #E6FFE6; padding: 10px; border-radius: 5px;'>"
+                                "✅ <b>Good Performance</b>: Campaigns are generally efficient.</div>",
+                                unsafe_allow_html=True
+                            )
+                            st.write("Maintain momentum and explore optimization opportunities.")
 
-                    # Two-Column Metrics with Context
-                    col1, col2 = st.columns(2)
-
+                    # Key Metrics with Enhanced Styling
+                    col1, col2 = st.columns([1, 1], gap="medium")
                     with col1:
-                        st.write("**Impressions per Click**")
-                        st.write(f"Average: {insights['avg_impressions_per_click']:.2f}")
-                        st.write(f"Standard Deviation: {insights['std_impressions_per_click']:.2f}")
-                        st.write(f"High Performers: {insights['ipc_high_count']} ({insights['ipc_high_percent']:.2f}%)")
-                        st.write(f"Moderate Performers: {insights['ipc_moderate_count']} ({insights['ipc_moderate_percent']:.2f}%)")
-                        st.write(f"Low Performers: {insights['ipc_low_count']} ({insights['ipc_low_percent']:.2f}%)")
-                        st.markdown(f"**What This Means**: On average, it takes {insights['avg_impressions_per_click']:.2f} impressions to get one click. "
-                                    f"{insights['ipc_high_percent']:.2f}% of products are efficient, but {insights['ipc_low_percent']:.2f}% may need better ad creatives or targeting.")
-
+                        st.metric(
+                            label="Avg Impressions per Click",
+                            value=f"{insights['avg_impressions_per_click']:.2f}",
+                            delta="Stable" if insights['std_impressions_per_click'] < 1 else "High Variance",
+                            delta_color="normal" if insights['std_impressions_per_click'] < 1 else "inverse"
+                        )
+                        st.markdown(
+                            "<span title='Number of impressions needed per click. Lower is better.'>ℹ️</span>",
+                            unsafe_allow_html=True
+                        )
                     with col2:
+                        st.metric(
+                            label="Avg Clicks per Conversion",
+                            value=f"{insights['avg_clicks_per_conversion']:.2f}",
+                            delta="Stable" if insights['std_clicks_per_conversion'] < 1 else "High Variance",
+                            delta_color="normal" if insights['std_clicks_per_conversion'] < 1 else "inverse"
+                        )
+                        st.markdown(
+                            "<span title='Number of clicks needed per conversion. Lower is better.'>ℹ️</span>",
+                            unsafe_allow_html=True
+                        )
+
+                    # Performance Breakdown with Toggle
+                    st.markdown("#### Performance Distribution")
+                    view_option = st.radio("View as:", ("Count", "Percentage"), horizontal=True)
+
+                    col3, col4 = st.columns([1, 1], gap="medium")
+
+                    with col3:
+                        st.write("**Impressions per Click**")
+                        ipc_data = pd.DataFrame({
+                            'Category': ['High', 'Moderate', 'Low'],
+                            'Count': [insights['ipc_high_count'], insights['ipc_moderate_count'], insights['ipc_low_count']],
+                            'Percentage': [insights['ipc_high_percent'], insights['ipc_moderate_percent'], insights['ipc_low_percent']]
+                        })
+                        y_axis = 'Count' if view_option == "Count" else 'Percentage'
+                        fig_ipc = px.bar(
+                            ipc_data,
+                            x=y_axis,
+                            y='Category',
+                            orientation='h',
+                            color='Category',
+                            color_discrete_map={'High': '#00CC96', 'Moderate': '#FFD700', 'Low': '#EF553B'},
+                            text=ipc_data[y_axis].apply(lambda x: f"{x:.1f}{'%' if y_axis == 'Percentage' else ''}"),
+                            height=200
+                        )
+                        fig_ipc.update_traces(textposition='auto')
+                        fig_ipc.update_layout(showlegend=False, margin=dict(l=0, r=0, t=0, b=0))
+                        st.plotly_chart(fig_ipc, use_container_width=True)
+                        st.write(f"**Efficient Products**: {insights['ipc_high_percent']:.1f}%")
+
+                    with col4:
                         st.write("**Clicks per Conversion**")
-                        st.write(f"Average: {insights['avg_clicks_per_conversion']:.2f}")
-                        st.write(f"Standard Deviation: {insights['std_clicks_per_conversion']:.2f}")
-                        st.write(f"High Performers: {insights['cpc_high_count']} ({insights['cpc_high_percent']:.2f}%)")
-                        st.write(f"Moderate Performers: {insights['cpc_moderate_count']} ({insights['cpc_moderate_percent']:.2f}%)")
-                        st.write(f"Low Performers: {insights['cpc_low_count']} ({insights['cpc_low_percent']:.2f}%)")
-                        st.markdown(f"**What This Means**: On average, it takes {insights['avg_clicks_per_conversion']:.2f} clicks to get one conversion. "
-                                    f"With {insights['cpc_low_percent']:.2f}% performing poorly, consider optimizing landing pages or product offerings.")
+                        cpc_data = pd.DataFrame({
+                            'Category': ['High', 'Moderate', 'Low'],
+                            'Count': [insights['cpc_high_count'], insights['cpc_moderate_count'], insights['cpc_low_count']],
+                            'Percentage': [insights['cpc_high_percent'], insights['cpc_moderate_percent'], insights['cpc_low_percent']]
+                        })
+                        y_axis = 'Count' if view_option == "Count" else 'Percentage'
+                        fig_cpc = px.bar(
+                            cpc_data,
+                            x=y_axis,
+                            y='Category',
+                            orientation='h',
+                            color='Category',
+                            color_discrete_map={'High': '#00CC96', 'Moderate': '#FFD700', 'Low': '#EF553B'},
+                            text=cpc_data[y_axis].apply(lambda x: f"{x:.1f}{'%' if y_axis == 'Percentage' else ''}"),
+                            height=200
+                        )
+                        fig_cpc.update_traces(textposition='auto')
+                        fig_cpc.update_layout(showlegend=False, margin=dict(l=0, r=0, t=0, b=0))
+                        st.plotly_chart(fig_cpc, use_container_width=True)
+                        st.write(f"**Efficient Products**: {insights['cpc_high_percent']:.1f}%")
 
-                    # Recommendations
-                    st.markdown("**Recommendations:**")
-                    st.markdown(f"- **Impressions per Click**: For the {insights['ipc_low_percent']:.2f}% low performers, test new ad creatives or refine targeting.")
-                    st.markdown(f"- **Clicks per Conversion**: For the {insights['cpc_low_percent']:.2f}% low performers, improve landing pages or review pricing.")
-                    st.markdown(f"- **Variability**: The standard deviation of {insights['std_clicks_per_conversion']:.2f} for clicks per conversion suggests outliers—investigate these products.")
+                    # Dynamic Recommendations
+                    st.markdown("#### 💡 Recommendations")
+                    if insights['ipc_low_percent'] > 50:
+                        st.markdown("- 🚨 **High Low Performers in Impressions per Click**: Optimize ad creatives or refine audience targeting.")
+                    else:
+                        st.markdown("- ✅ **Impressions per Click**: Maintain current strategy; consider A/B testing new creatives.")
+                    if insights['cpc_low_percent'] > 50:
+                        st.markdown("- 🚨 **High Low Performers in Clicks per Conversion**: Audit landing pages for UX issues or offer adjustments.")
+                    else:
+                        st.markdown("- ✅ **Clicks per Conversion**: Keep optimizing; test call-to-action variations.")
 
-                    # Note
-                    st.write("**Note**: High Performers ≤ 90% of average, Moderate 90-110%, Low > 110% or no clicks/conversions.")
+                    # Note with Tooltip
+                    st.markdown(
+                        "<small>Note: <span title='High: Below average (efficient). Moderate: Near average. Low: Above average (inefficient).'>"
+                        "Performance categories based on efficiency thresholds</span>.</small>",
+                        unsafe_allow_html=True
+                    )
+                    st.divider()
 
-                # Debugging Tab
+                # Detected Columns Tab (unchanged)
+                with tab2:
+                    st.subheader("📂 Detected Columns")
+                    st.write(df_processed.columns.tolist())
+
+                # Debugging Tab (unchanged)
                 with tab3:
                     st.subheader("🔍 Debugging: Raw Insights Output")
                     st.write(insights)
