@@ -1,6 +1,9 @@
 import pandas as pd
 import logging
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+
 def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
     """
     Cleans and standardizes DataFrame column names to lowercase with underscores.
@@ -70,7 +73,10 @@ def assess_product_performance(df: pd.DataFrame):
     Processes and cleans Google Ads data for performance analysis.
     """
     df = clean_column_names(df)
-
+    
+    # Log the columns after cleaning for debugging
+    logging.info(f"Columns after cleaning: {df.columns.tolist()}")
+    
     # Convert numeric columns safely
     numeric_columns = ['impressions', 'clicks', 'conversions', 'conversion_value', 'conversion_value_cost', 'search_impression_share', 'cost']
     for col in numeric_columns:
@@ -171,8 +177,8 @@ def assess_product_performance(df: pd.DataFrame):
         "roas": round(roas, 2),  # Correct ROAS Calculation
         **sku_contribution,  # Merge Pareto Law contribution
         **funnel_metrics,  # Merge Inventory Marketing Funnel metrics
-        "overall_impressions_per_click": round(overall_impressions_per_click, 2),  # New metric
-        "overall_clicks_per_conversion": round(overall_clicks_per_conversion, 2),  # New metric
+        "overall_impressions_per_click": round(overall_impressions_per_click, 2),  # Always included
+        "overall_clicks_per_conversion": round(overall_clicks_per_conversion, 2),  # Always included
     }
 
     return insights, df  # Ensure we return both values
