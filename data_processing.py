@@ -25,16 +25,16 @@ def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
     
     df.rename(columns=rename_mapping, inplace=True)
     
+    # Log unmapped columns for debugging
+    unmapped = [col for col in df.columns if col not in rename_mapping.values()]
+    if unmapped:
+        logging.info(f"Unmapped columns detected: {unmapped}")
+    
     return df
 
 def calculate_funnel_metrics(df: pd.DataFrame):
     """
     Calculates full-funnel efficiency with performance categorization and variance analysis.
-    
-    - Computes averages and standard deviations for impressions per click and clicks per conversion.
-    - Categorizes products into High, Moderate, and Low performers based on these metrics.
-    
-    Returns a dictionary with all metrics, including defaults if required columns are missing.
     """
     total_products = df.shape[0]
     if "impressions" in df.columns and "clicks" in df.columns and "conversions" in df.columns:
@@ -87,6 +87,10 @@ def calculate_funnel_metrics(df: pd.DataFrame):
         cpc_high_count = cpc_category_counts.get('High', 0)
         cpc_moderate_count = cpc_category_counts.get('Moderate', 0)
         cpc_low_count = cpc_category_counts.get('Low', 0)
+
+        # Log category counts for debugging
+        logging.info(f"IPC Categories: High={ipc_high_count}, Moderate={ipc_moderate_count}, Low={ipc_low_count}")
+        logging.info(f"CPC Categories: High={cpc_high_count}, Moderate={cpc_moderate_count}, Low={cpc_low_count}")
 
         # Calculate percentages
         ipc_high_percent = (ipc_high_count / total_products * 100) if total_products > 0 else 0
@@ -162,10 +166,10 @@ def assess_product_performance(df: pd.DataFrame):
     else:
         average_search_impr_share = 0
 
-    # Fix: Clean CTR column to remove % and handle concatenated values
+    # Fix: Clean CTR column to remove % and handle both integer and decimal values
     if "ctr" in df.columns:
         df['ctr'] = df['ctr'].astype(str).str.replace('%', '', regex=False)
-        df['ctr'] = df['ctr'].str.extract(r'(\d+\.\d+)')
+        df['ctr'] = df['ctr'].str.extract(r'(\d+\.?\d*)')  # Handles both integer and decimal values
         df['ctr'] = pd.to_numeric(df['ctr'], errors='coerce').fillna(0) / 100
         average_ctr = df["ctr"].mean() * 100 if "ctr" in df.columns else 0
     else:
