@@ -40,7 +40,7 @@ def run_web_ui():
                 with tab1:
                     st.subheader("📊 Key Metrics Overview")
 
-                    # ✅ Define Key Performance Metrics Including the New Row
+                    # Define Key Performance Metrics Including the New Row
                     metrics = [
                         {"label": "🛍️ Total Items", "value": f"{insights['total_item_count']:,}"},
                         {"label": "📈 Total Impressions", "value": f"{insights['total_impressions']:,}"},
@@ -53,14 +53,14 @@ def run_web_ui():
                         {"label": "🔄 Total Conversions", "value": f"{insights['total_conversions']:,}"},
                     ]
 
-                    # ✅ Create a Proper 3x3 Grid Layout
+                    # Create a Proper 3x3 Grid Layout
                     row1 = st.columns(3)  # First row (3 cards)
                     st.markdown("<br>", unsafe_allow_html=True)  # Adds Space Between Rows
                     row2 = st.columns(3)  # Second row (3 cards)
                     st.markdown("<br>", unsafe_allow_html=True)  # Adds Space Between Rows
                     row3 = st.columns(3)  # Third row (3 cards)
 
-                    # ✅ Define Consistent Card Styling
+                    # Define Consistent Card Styling
                     card_style = """
                         <div style="
                             background-color: #1E1E1E; 
@@ -88,7 +88,7 @@ def run_web_ui():
                     for col, metric in zip(row3, metrics[6:]):
                         col.markdown(card_style.format(metric["label"], metric["value"]), unsafe_allow_html=True)
 
-                    # ✅ SKU Contribution Breakdown (Pareto Law)
+                    # SKU Contribution Breakdown (Pareto Law)
                     st.subheader("📈 Pareto Law: SKU Contribution Breakdown")
                     sku_tiers = [5, 10, 20, 50]
                     sku_table = pd.DataFrame([
@@ -103,7 +103,7 @@ def run_web_ui():
                     ])
                     st.dataframe(sku_table, height=300)
 
-                    # ✅ SKU Contribution Graph
+                    # SKU Contribution Graph
                     st.subheader("📊 SKU Contribution vs Revenue & ROAS")
                     fig = px.bar(
                         sku_table,
@@ -119,8 +119,16 @@ def run_web_ui():
                     fig.update_traces(texttemplate='%{text}%', textposition='outside')
                     st.plotly_chart(fig, use_container_width=True)
 
-                    # ✅ New Marketing Funnel Insights Section
+                    # New Marketing Funnel Insights Section
                     st.subheader("📊 Marketing Funnel Insights")
+
+                    # Key Takeaways
+                    st.markdown("**Key Takeaways:**")
+                    st.markdown(f"- **Click Generation**: {insights['ipc_high_percent']:.2f}% of products efficiently turn impressions into clicks.")
+                    st.markdown(f"- **Conversion Efficiency**: {insights['cpc_high_percent']:.2f}% of products efficiently convert clicks into conversions.")
+                    st.markdown(f"- **Performance Variability**: High standard deviation in clicks per conversion ({insights['std_clicks_per_conversion']:.2f}) indicates significant differences across products.")
+
+                    # Two-Column Metrics with Context
                     col1, col2 = st.columns(2)
 
                     with col1:
@@ -130,6 +138,8 @@ def run_web_ui():
                         st.write(f"High Performers: {insights['ipc_high_count']} ({insights['ipc_high_percent']:.2f}%)")
                         st.write(f"Moderate Performers: {insights['ipc_moderate_count']} ({insights['ipc_moderate_percent']:.2f}%)")
                         st.write(f"Low Performers: {insights['ipc_low_count']} ({insights['ipc_low_percent']:.2f}%)")
+                        st.markdown(f"**What This Means**: On average, it takes {insights['avg_impressions_per_click']:.2f} impressions to get one click. "
+                                    f"{insights['ipc_high_percent']:.2f}% of products are efficient, but {insights['ipc_low_percent']:.2f}% may need better ad creatives or targeting.")
 
                     with col2:
                         st.write("**Clicks per Conversion**")
@@ -138,8 +148,17 @@ def run_web_ui():
                         st.write(f"High Performers: {insights['cpc_high_count']} ({insights['cpc_high_percent']:.2f}%)")
                         st.write(f"Moderate Performers: {insights['cpc_moderate_count']} ({insights['cpc_moderate_percent']:.2f}%)")
                         st.write(f"Low Performers: {insights['cpc_low_count']} ({insights['cpc_low_percent']:.2f}%)")
+                        st.markdown(f"**What This Means**: On average, it takes {insights['avg_clicks_per_conversion']:.2f} clicks to get one conversion. "
+                                    f"With {insights['cpc_low_percent']:.2f}% performing poorly, consider optimizing landing pages or product offerings.")
 
-                    st.write("*Note: High performers have metric ≤ 90% of average, Moderate: 90-110%, Low: >110% or no clicks/conversions.*")
+                    # Recommendations
+                    st.markdown("**Recommendations:**")
+                    st.markdown(f"- **Impressions per Click**: For the {insights['ipc_low_percent']:.2f}% low performers, test new ad creatives or refine targeting.")
+                    st.markdown(f"- **Clicks per Conversion**: For the {insights['cpc_low_percent']:.2f}% low performers, improve landing pages or review pricing.")
+                    st.markdown(f"- **Variability**: The standard deviation of {insights['std_clicks_per_conversion']:.2f} for clicks per conversion suggests outliers—investigate these products.")
+
+                    # Note
+                    st.write("**Note**: High Performers ≤ 90% of average, Moderate 90-110%, Low > 110% or no clicks/conversions.")
 
                 # Debugging Tab
                 with tab3:
