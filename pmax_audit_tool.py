@@ -5,8 +5,15 @@ import logging
 from data_processing import assess_product_performance
 from charts import plot_chart
 
+# Set page configuration
 st.set_page_config(page_title="📊 PMax Audit Tool", layout="wide")
-logging.basicConfig(filename="pmax_audit_tool.log", level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+
+# Configure logging for error tracking
+logging.basicConfig(
+    filename="pmax_audit_tool.log",
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 @st.cache_data
 def load_and_process_data(uploaded_file):
@@ -44,8 +51,11 @@ def run_web_ui():
                     # Custom Metric Chart
                     st.subheader("📊 Custom Metric Chart")
                     metric = st.selectbox("Select Metric", ["impressions", "clicks", "conversions"])
-                    fig = plot_chart(df_processed, metric)
-                    st.plotly_chart(fig, use_container_width=True)
+                    if 'item_id' in df_processed.columns and metric in df_processed.columns:
+                        fig = plot_chart(df_processed, metric)
+                        st.plotly_chart(fig, use_container_width=True)
+                    else:
+                        st.warning(f"⚠️ Cannot plot chart: Missing 'item_id' or '{metric}'.")
 
                 with tab2:
                     st.subheader("📂 Detected Columns")
