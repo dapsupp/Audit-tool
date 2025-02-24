@@ -1,184 +1,101 @@
 import pandas as pd
-import logging
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+def assess_product_performance(df: pd.DataFrame):
+    """
+    Assess product performance and compute funnel metrics.
+    """
+    # Existing overall totals (preserving current functionality)
+    total_impressions = df["impressions"].sum() if "impressions" in df.columns else 0
+    total_clicks = df["clicks"].sum() if "clicks" in df.columns else 0
+    total_conversions = df["conversions"].sum() if "conversions" in df.columns else 0
+    total_item_count = df.shape[0]
 
-def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Cleans and standardizes DataFrame column names to lowercase with underscores.
-    """
-    df.columns = (
-        df.columns
-        .str.strip()
-        .str.lower()
-        .str.replace(' ', '_')
-        .str.replace('.', '_')
+    # Calculate overall metrics (existing functionality)
+    overall_impressions_per_click = (
+        total_impressions / total_clicks if total_clicks > 0 else 0
     )
-    
-    rename_mapping = {
-        'impr_': 'impressions',
-        'conv__value': 'conversion_value',
-        'conv__value_/_cost': 'conversion_value_cost',
-        'search_impr_share': 'search_impression_share',
-        'search_impr__share': 'search_impression_share',  # Handle variations
-        'cost': 'cost'
+    overall_clicks_per_conversion = (
+        total_clicks / total_conversions if total_conversions > 0 else 0
+    )
+
+    # Calculate funnel metrics (new and enhanced functionality)
+    funnel_metrics = calculate_funnel_metrics(df)
+
+    # Combine all insights
+    insights = {
+        "total_impressions": total_impressions,
+        "total_clicks": total_clicks,
+        "total_conversions": total_conversions,
+        "total_item_count": total_item_count,
+        "overall_impressions_per_click": round(overall_impressions_per_click, 2),
+        "overall_clicks_per_conversion": round(overall_clicks_per_conversion, 2),
+        **funnel_metrics  # Merge new funnel metrics
     }
-    
-    df.rename(columns=rename_mapping, inplace=True)
-    
-    return df
+    return insights
 
 def calculate_funnel_metrics(df: pd.DataFrame):
     """
-    Calculates full-funnel efficiency:
-    - Avg impressions per click
-    - Number of products achieving this rate
-    - Avg clicks per conversion
-    - Number of products achieving this rate
+    Calculate per-product funnel metrics, including averages and efficiency counts/percentages.
     """
+    total_products = df.shape[0]
     if "impressions" in df.columns and "clicks" in df.columns and "conversions" in df.columns:
+        # Calculate per-product metrics
         df["impressions_per_click"] = df["impressions"] / df["clicks"]
         df["clicks_per_conversion"] = df["clicks"] / df["conversions"]
 
         # Handle division by zero and infinite values
-        df.replace([float("inf"), -float("inf")], None, inplace=True)
+        df["impressions_per_click"].replace([float("inf"), -float("inf")], None, inplace=True)
+        df["clicks_per_conversion"].replace([float("inf"), -float("inf")], None, inplace=True)
 
-        # Compute funnel averages
+        # Compute averages across products
         avg_impressions_per_click = df["impressions_per_click"].mean()
         avg_clicks_per_conversion = df["clicks_per_conversion"].mean()
 
-        # Find how many products meet or exceed these averages
-        num_products_meeting_impressions_per_click = df[df["impressions_per_click"] <= avg_impressions_per_click].shape[0]
-        num_products_meeting_clicks_per_conversion = df[df["clicks_per_conversion"] <= avg_clicks_per_conversion].shape[0]
+        # Count products meeting or exceeding averages (lower is better)
+        if pd.notnull(avg_impressions_per_click):
+            num_products_meeting_impressions = df[
+                df["impressions_per_click"] <= avg_impressions_per_click
+            ].shape[0]
+        else:
+            num_products_meeting_impressions = 0
 
-        # Return insights
-        funnel_metrics = {
-            "avg_impressions_per_click": round(avg_impressions_per_click, 2),
-            "num_products_meeting_impressions_per_click": num_products_meeting_impressions_per_click,
-            "avg_clicks_per_conversion": round(avg_clicks_per_conversion, 2),
-            "num_products_meeting_clicks_per_conversion": num_products_meeting_clicks_per_conversion,
-        }
-        return funnel_metrics
-    else:
-        return {
-            "avg_impressions_per_click": None,
-            "num_products_meeting_impressions_per_click": None,
-            "avg_clicks_per_conversion": None,
-            "num_products_meeting_clicks_per_conversion": None,
-        }
+        if pd.notnull(avg_clicks_per_conversion):
+            num_products_meeting_clicks = df[
+                df["clicks_per_conversion"] <= avg_clicks_per_conversion
+            ].shape[0]
+        else:
+            num_products_meeting_clicks = 0
 
-def assess_product_performance(df: pd.DataFrame):
-    """
-    Processes and cleans Google Ads data for performance analysis.
-    """
-    df = clean_column_names(df)
-    
-    # Log the columns after cleaning for debugging
-    logging.info(f"Columns after cleaning: {df.columns.tolist()}")
-    
-    # Convert numeric columns safely
-    numeric_columns = ['impressions', 'clicks', 'conversions', 'conversion_value', 'conversion_value_cost', 'search_impression_share', 'cost']
-    for col in numeric_columns:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col].astype(str).str.replace(r'[^0-9.]', '', regex=True), errors='coerce').fillna(0)
-
-    # Ensure 'search_impression_share' is correctly processed
-    if "search_impression_share" in df.columns:
-        df["search_impression_share"] = df["search_impression_share"].astype(str)
-
-        # Handle missing values and "< 10" cases
-        df["search_impression_share"] = (
-            df["search_impression_share"]
-            .replace("--", None)  # Convert "--" to NaN
-            .replace("< 10", "5")  # Convert "< 10" to midpoint value (5%)
-            .str.rstrip("%")  # Remove percentage symbols
+        # Calculate percentages
+        percent_meeting_impressions = (
+            (num_products_meeting_impressions / total_products * 100)
+            if total_products > 0 else 0
+        )
+        percent_meeting_clicks = (
+            (num_products_meeting_clicks / total_products * 100)
+            if total_products > 0 else 0
         )
 
-        # Convert to numeric format safely
-        df["search_impression_share"] = pd.to_numeric(df["search_impression_share"], errors="coerce")
-
-        # Ensure Search Impression Share is correctly averaged
-        average_search_impr_share = df["search_impression_share"].mean()
+        # Return enhanced funnel metrics
+        return {
+            "avg_impressions_per_click": (
+                round(avg_impressions_per_click, 2) if pd.notnull(avg_impressions_per_click) else 0
+            ),
+            "num_products_meeting_impressions": num_products_meeting_impressions,
+            "percent_meeting_impressions": round(percent_meeting_impressions, 2),
+            "avg_clicks_per_conversion": (
+                round(avg_clicks_per_conversion, 2) if pd.notnull(avg_clicks_per_conversion) else 0
+            ),
+            "num_products_meeting_clicks": num_products_meeting_clicks,
+            "percent_meeting_clicks": round(percent_meeting_clicks, 2),
+        }
     else:
-        average_search_impr_share = 0  # Default to 0 if column is missing
-
-    # Fix: Clean CTR column to remove % and handle concatenated values
-    if "ctr" in df.columns:
-        df['ctr'] = df['ctr'].astype(str).str.replace('%', '', regex=False)  # Remove % symbols
-        df['ctr'] = df['ctr'].str.extract(r'(\d+\.\d+)')  # Extract only numeric values
-        df['ctr'] = pd.to_numeric(df['ctr'], errors='coerce').fillna(0) / 100  # Convert to decimal format
-
-        # Ensure 'average_ctr' is included in insights
-        average_ctr = df["ctr"].mean() * 100 if "ctr" in df.columns else 0
-    else:
-        average_ctr = 0  # Default to 0 if column is missing
-
-    # Compute overall metrics
-    total_conversion_value = df["conversion_value"].sum() if "conversion_value" in df.columns else 0
-    total_cost = df["cost"].sum() if "cost" in df.columns else 0
-    roas = total_conversion_value / total_cost if total_cost > 0 else 0  # Correct ROAS Calculation
-
-    # Compute Pareto Law SKU Contribution Breakdown
-    sku_thresholds = [5, 10, 20, 50]
-    sku_contribution = {}
-
-    if total_conversion_value > 0 and "conversion_value" in df.columns and "cost" in df.columns:
-        df_sorted = df.sort_values(by="conversion_value", ascending=False)
-
-        for threshold in sku_thresholds:
-            num_skus = int(df.shape[0] * (threshold / 100))  # Convert % to actual SKU count
-            top_n_skus = df_sorted.head(num_skus)
-
-            # Revenue contribution
-            conversion_value = top_n_skus["conversion_value"].sum()
-            contribution_percentage = (conversion_value / total_conversion_value * 100) if total_conversion_value > 0 else 0
-
-            # ROAS Calculation
-            total_cost_tier = top_n_skus["cost"].sum()
-            sku_roas = (conversion_value / total_cost_tier) if total_cost_tier > 0 else 0  # Prevent division by zero
-
-            # Store results in dictionary format
-            sku_contribution[f"top_{threshold}_sku_contribution"] = {
-                "sku_count": num_skus,
-                "percentage": round(contribution_percentage, 2),
-                "conversion_value": round(conversion_value, 2),
-                "roas": round(sku_roas, 2),
-            }
-
-    # Compute funnel metrics (Inventory Marketing Funnel)
-    funnel_metrics = calculate_funnel_metrics(df)
-
-    # Compute overall funnel metrics for marketing funnel feature
-    if "impressions" in df.columns and "clicks" in df.columns:
-        total_impressions = df["impressions"].sum()
-        total_clicks = df["clicks"].sum()
-        overall_impressions_per_click = total_impressions / total_clicks if total_clicks > 0 else 0
-    else:
-        overall_impressions_per_click = 0
-
-    if "clicks" in df.columns and "conversions" in df.columns:
-        total_clicks = df["clicks"].sum()
-        total_conversions = df["conversions"].sum()
-        overall_clicks_per_conversion = total_clicks / total_conversions if total_conversions > 0 else 0
-    else:
-        overall_clicks_per_conversion = 0
-
-    # Ensure the function returns both insights & the processed DataFrame
-    insights = {
-        "total_item_count": df.shape[0],
-        "total_impressions": df["impressions"].sum() if "impressions" in df.columns else 0,
-        "total_clicks": df["clicks"].sum() if "clicks" in df.columns else 0,
-        "total_conversions": df["conversions"].sum() if "conversions" in df.columns else 0,
-        "total_conversion_value": total_conversion_value,
-        "total_cost": total_cost,
-        "average_search_impression_share": round(average_search_impr_share, 2),
-        "average_ctr": round(average_ctr, 2),
-        "roas": round(roas, 2),  # Correct ROAS Calculation
-        **sku_contribution,  # Merge Pareto Law contribution
-        **funnel_metrics,  # Merge Inventory Marketing Funnel metrics
-        "overall_impressions_per_click": round(overall_impressions_per_click, 2),  # Always included
-        "overall_clicks_per_conversion": round(overall_clicks_per_conversion, 2),  # Always included
-    }
-
-    return insights, df  # Ensure we return both values
+        # Return defaults if required columns are missing
+        return {
+            "avg_impressions_per_click": 0,
+            "num_products_meeting_impressions": 0,
+            "percent_meeting_impressions": 0,
+            "avg_clicks_per_conversion": 0,
+            "num_products_meeting_clicks": 0,
+            "percent_meeting_clicks": 0,
+        }
