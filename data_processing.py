@@ -1,5 +1,5 @@
 import pandas as pd
-import numpy as np  # Added for performance categorization
+import numpy as np  # Required for performance categorization
 import logging
 
 def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
@@ -34,7 +34,7 @@ def calculate_funnel_metrics(df: pd.DataFrame):
     - Computes averages and standard deviations for impressions per click and clicks per conversion.
     - Categorizes products into High, Moderate, and Low performers based on these metrics.
     
-    Returns a dictionary with metrics including averages, standard deviations, and category counts/percentages.
+    Returns a dictionary with all metrics, including defaults if required columns are missing.
     """
     total_products = df.shape[0]
     if "impressions" in df.columns and "clicks" in df.columns and "conversions" in df.columns:
@@ -115,15 +115,26 @@ def calculate_funnel_metrics(df: pd.DataFrame):
             "cpc_low_count": cpc_low_count,
             "cpc_low_percent": round(cpc_low_percent, 2),
         }
-    # Return zeros if required columns are missing
-    return {
-        key: 0 for key in [
-            "avg_impressions_per_click", "std_impressions_per_click", "ipc_high_count", "ipc_high_percent",
-            "ipc_moderate_count", "ipc_moderate_percent", "ipc_low_count", "ipc_low_percent",
-            "avg_clicks_per_conversion", "std_clicks_per_conversion", "cpc_high_count", "cpc_high_percent",
-            "cpc_moderate_count", "cpc_moderate_percent", "cpc_low_count", "cpc_low_percent"
-        ]
-    }
+    else:
+        # Return default values if required columns are missing
+        return {
+            "avg_impressions_per_click": 0,
+            "std_impressions_per_click": 0,
+            "ipc_high_count": 0,
+            "ipc_high_percent": 0,
+            "ipc_moderate_count": 0,
+            "ipc_moderate_percent": 0,
+            "ipc_low_count": 0,
+            "ipc_low_percent": 0,
+            "avg_clicks_per_conversion": 0,
+            "std_clicks_per_conversion": 0,
+            "cpc_high_count": 0,
+            "cpc_high_percent": 0,
+            "cpc_moderate_count": 0,
+            "cpc_moderate_percent": 0,
+            "cpc_low_count": 0,
+            "cpc_low_percent": 0,
+        }
 
 def assess_product_performance(df: pd.DataFrame):
     """
