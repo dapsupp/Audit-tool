@@ -4,19 +4,21 @@ import plotly.express as px
 import logging
 from data_processing import assess_product_performance
 
-# Page configuration
+# Set page configuration
 st.set_page_config(page_title="📊 PMax Audit Tool", layout="wide")
 
-# Logging setup
-logging.basicConfig(filename="pmax_audit_tool.log", level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+# Configure logging
+logging.basicConfig(
+    filename="pmax_audit_tool.log",
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 def run_web_ui():
-    """Runs the Streamlit UI for the PMax Audit Tool with all original features."""
+    """Initializes the Streamlit web UI for the PMax Audit Tool."""
     
     st.title("📊 PMax Audit Tool")
     st.write("Upload your CSV file below to analyze Performance Max campaigns.")
-
-    # File uploader
     st.warning("⚠️ Ensure your CSV column headers are in row 1 and all numbers are formatted correctly.")
     uploaded_file = st.file_uploader("📤 Upload your CSV file", type="csv", key="file_uploader_1")
 
@@ -26,38 +28,67 @@ def run_web_ui():
                 df = pd.read_csv(uploaded_file, encoding="utf-8", on_bad_lines="skip")
                 insights, df_processed = assess_product_performance(df)
 
-                # Tabs
                 tab1, tab2, tab3 = st.tabs(["📊 SKU Performance", "📂 Detected Columns", "🔍 Debugging"])
 
-                # SKU Performance Tab
                 with tab1:
                     st.subheader("📊 Key Metrics Overview")
-                    col1, col2, col3, col4 = st.columns(4)
-                    with col1:
-                        st.metric("Total Items", insights["total_item_count"])
-                    with col2:
-                        st.metric("Total Impressions", f"{insights['total_impressions']:,}")
-                    with col3:
-                        st.metric("Total Clicks", f"{insights['total_clicks']:,}")
-                    with col4:
-                        st.metric("Total Conversions", f"{insights['total_conversions']:,}")
+                    metrics = [
+                        {"label": "🛍️ Total Items", "value": f"{insights['total_item_count']:,}"},
+                        {"label": "📈 Total Impressions", "value": f"{insights['total_impressions']:,}"},
+                        {"label": "📊 Average CTR", "value": f"{insights['average_ctr']:.2f}%"},
+                        {"label": "💰 Total Conversion Value", "value": f"£{insights['total_conversion_value']:,.2f}"},
+                        {"label": "🔍 Search Impression Share", "value": f"{insights['average_search_impression_share']:.2f}%"},
+                        {"label": "⚡ ROAS", "value": f"{insights['roas']:.2f}"},
+                        {"label": "🖱️ Total Clicks", "value": f"{insights['total_clicks']:,}"},
+                        {"label": "💸 Total Cost", "value": f"£{insights['total_cost']:,.2f}"},
+                        {"label": "🔄 Total Conversions", "value": f"{insights['total_conversions']:,}"},
+                    ]
 
-                    # Pareto Law SKU Contribution
+                    # Create 3x3 grid
+                    row1 = st.columns(3)
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    row2 = st.columns(3)
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    row3 = st.columns(3)
+
+                    card_style = """
+                        <div style="
+                            background-color: #1E1E1E; 
+                            padding: 20px; 
+                            border-radius: 10px; 
+                            text-align: center; 
+                            box-shadow: 0px 4px 8px rgba(255, 255, 255, 0.2);
+                            color: white; 
+                            font-size: 18px;
+                            font-weight: bold;
+                            width: 100%;
+                            min-height: 120px;
+                            margin: 5px 0 15px 0;
+                        ">
+                            <h3 style="color: white;">{}</h3>
+                            <p style="font-size: 30px; margin: 5px 0;">{}</p>
+                        </div>
+                    """
+
+                    for col, metric in zip(row1, metrics[:3]):
+                        col.markdown(card_style.format(metric["label"], metric["value"]), unsafe_allow_html=True)
+                    for col, metric in zip(row2, metrics[3:6]):
+                        col.markdown(card_style.format(metric["label"], metric["value"]), unsafe_allow_html=True)
+                    for col, metric in zip(row3, metrics[6:]):
+                        col.markdown(card_style.format(metric["label"], metric["value"]), unsafe_allow_html=True)
+
                     st.subheader("📈 Pareto Law: SKU Contribution Breakdown")
-                    sku_tiers = [5, 10, 20, 50]
                     sku_table = pd.DataFrame([
                         {
-                            "SKU Tier": f"Top {threshold}%",
-                            "Number of SKUs": f"{insights[f'top_{threshold}_sku_contribution']['sku_count']:,}",
-                            "Revenue Contribution (%)": f"{insights[f'top_{threshold}_sku_contribution']['percentage']}%",
-                            "Total Conversion Value (£)": f"£{insights[f'top_{threshold}_sku_contribution']['conversion_value']:,}",
-                            "ROAS": f"{insights[f'top_{threshold}_sku_contribution']['roas']:.2f}",
-                        }
-                        for threshold in sku_tiers
+                            "SKU Tier": f"Top {t}%",
+                            "Number of SKUs": f"{insights[f'top_{t}_sku_contribution']['sku_count']:,}",
+                            "Revenue Contribution (%)": f"{insights[f'top_{t}_sku_contribution']['percentage']}%",
+                            "Total Conversion Value (£)": f"£{insights[f'top_{t}_sku_contribution']['conversion_value']:,}",
+                            "ROAS": f"{insights[f'top_{t}_sku_contribution']['roas']:.2f}",
+                        } for t in [5, 10, 20, 50]
                     ])
                     st.dataframe(sku_table, height=300)
 
-                    # Pareto Chart
                     st.subheader("📊 SKU Contribution vs Revenue & ROAS")
                     fig = px.bar(
                         sku_table,
@@ -79,26 +110,28 @@ def run_web_ui():
                     with col1:
                         st.write("**Impressions per Click**")
                         st.write(f"Average: {insights['avg_impressions_per_click']:.2f}")
-                        st.write(f"Products Meeting Average: {insights['num_products_meeting_impressions']} ({insights['percent_meeting_impressions']:.2f}%)")
+                        st.write(f"Products Meeting Average: {insights['num_products_meeting_impressions']} "
+                                 f"({insights['percent_meeting_impressions']:.2f}%)")
                     with col2:
                         st.write("**Clicks per Conversion**")
                         st.write(f"Average: {insights['avg_clicks_per_conversion']:.2f}")
-                        st.write(f"Products Meeting Average: {insights['num_products_meeting_clicks']} ({insights['percent_meeting_clicks']:.2f}%)")
+                        st.write(f"Products Meeting Average: {insights['num_products_meeting_clicks']} "
+                                 f"({insights['percent_meeting_clicks']:.2f}%)")
 
-                # Detected Columns Tab
                 with tab2:
                     st.subheader("📂 Detected Columns")
                     st.write(df_processed.columns.tolist())
 
-                # Debugging Tab
                 with tab3:
-                    st.subheader("🔍 Debugging")
-                    st.write("Processed DataFrame Sample:")
-                    st.dataframe(df_processed.head())
+                    st.subheader("🔍 Debugging: Raw Insights Output")
+                    st.write(insights)
 
+            except KeyError as e:
+                logging.error(f"❌ Missing columns: {e}")
+                st.error(f"⚠️ Missing columns: {e}")
             except Exception as e:
-                logging.error(f"❌ Error: {e}")
-                st.error(f"❌ Error: {e}")
+                logging.error(f"❌ Unexpected error: {e}")
+                st.error(f"❌ Unexpected error: {e}")
 
 if __name__ == "__main__":
     run_web_ui()
