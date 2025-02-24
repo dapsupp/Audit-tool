@@ -77,7 +77,7 @@ def assess_product_performance(df: pd.DataFrame):
         if col in df.columns:
             df[col] = pd.to_numeric(df[col].astype(str).str.replace(r'[^0-9.]', '', regex=True), errors='coerce').fillna(0)
 
-    # ✅ Ensure 'search_impression_share' is correctly processed
+    # Ensure 'search_impression_share' is correctly processed
     if "search_impression_share" in df.columns:
         df["search_impression_share"] = df["search_impression_share"].astype(str)
 
@@ -92,28 +92,28 @@ def assess_product_performance(df: pd.DataFrame):
         # Convert to numeric format safely
         df["search_impression_share"] = pd.to_numeric(df["search_impression_share"], errors="coerce")
 
-        # ✅ Ensure Search Impression Share is correctly averaged
+        # Ensure Search Impression Share is correctly averaged
         average_search_impr_share = df["search_impression_share"].mean()
     else:
         average_search_impr_share = 0  # Default to 0 if column is missing
 
-    # ✅ Fix: Clean CTR column to remove % and handle concatenated values
+    # Fix: Clean CTR column to remove % and handle concatenated values
     if "ctr" in df.columns:
         df['ctr'] = df['ctr'].astype(str).str.replace('%', '', regex=False)  # Remove % symbols
         df['ctr'] = df['ctr'].str.extract(r'(\d+\.\d+)')  # Extract only numeric values
         df['ctr'] = pd.to_numeric(df['ctr'], errors='coerce').fillna(0) / 100  # Convert to decimal format
 
-        # ✅ Ensure 'average_ctr' is included in insights
+        # Ensure 'average_ctr' is included in insights
         average_ctr = df["ctr"].mean() * 100 if "ctr" in df.columns else 0
     else:
         average_ctr = 0  # Default to 0 if column is missing
 
-    # ✅ Compute overall metrics
+    # Compute overall metrics
     total_conversion_value = df["conversion_value"].sum() if "conversion_value" in df.columns else 0
     total_cost = df["cost"].sum() if "cost" in df.columns else 0
-    roas = total_conversion_value / total_cost if total_cost > 0 else 0  # ✅ Correct ROAS Calculation
+    roas = total_conversion_value / total_cost if total_cost > 0 else 0  # Correct ROAS Calculation
 
-    # ✅ Compute Pareto Law SKU Contribution Breakdown
+    # Compute Pareto Law SKU Contribution Breakdown
     sku_thresholds = [5, 10, 20, 50]
     sku_contribution = {}
 
@@ -140,10 +140,25 @@ def assess_product_performance(df: pd.DataFrame):
                 "roas": round(sku_roas, 2),
             }
 
-    # ✅ Compute funnel metrics (Inventory Marketing Funnel)
+    # Compute funnel metrics (Inventory Marketing Funnel)
     funnel_metrics = calculate_funnel_metrics(df)
 
-    # ✅ Ensure the function returns both insights & the processed DataFrame
+    # Compute overall funnel metrics for marketing funnel feature
+    if "impressions" in df.columns and "clicks" in df.columns:
+        total_impressions = df["impressions"].sum()
+        total_clicks = df["clicks"].sum()
+        overall_impressions_per_click = total_impressions / total_clicks if total_clicks > 0 else 0
+    else:
+        overall_impressions_per_click = 0
+
+    if "clicks" in df.columns and "conversions" in df.columns:
+        total_clicks = df["clicks"].sum()
+        total_conversions = df["conversions"].sum()
+        overall_clicks_per_conversion = total_clicks / total_conversions if total_conversions > 0 else 0
+    else:
+        overall_clicks_per_conversion = 0
+
+    # Ensure the function returns both insights & the processed DataFrame
     insights = {
         "total_item_count": df.shape[0],
         "total_impressions": df["impressions"].sum() if "impressions" in df.columns else 0,
@@ -153,9 +168,11 @@ def assess_product_performance(df: pd.DataFrame):
         "total_cost": total_cost,
         "average_search_impression_share": round(average_search_impr_share, 2),
         "average_ctr": round(average_ctr, 2),
-        "roas": round(roas, 2),  # ✅ Correct ROAS Calculation
-        **sku_contribution,  # ✅ Merge Pareto Law contribution
-        **funnel_metrics,  # ✅ Merge Inventory Marketing Funnel metrics
+        "roas": round(roas, 2),  # Correct ROAS Calculation
+        **sku_contribution,  # Merge Pareto Law contribution
+        **funnel_metrics,  # Merge Inventory Marketing Funnel metrics
+        "overall_impressions_per_click": round(overall_impressions_per_click, 2),  # New metric
+        "overall_clicks_per_conversion": round(overall_clicks_per_conversion, 2),  # New metric
     }
 
-    return insights, df  # ✅ Ensure we return both values
+    return insights, df  # Ensure we return both values
