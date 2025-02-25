@@ -35,7 +35,11 @@ def run_web_ui():
                 insights, df_processed = assess_product_performance(df)
 
                 # Define application tabs
-                tab1, tab2, tab3, tab4 = st.tabs(["📅 Account Summary","📊 SKU Performance", "📂 Detected Columns", "🔍 Debugging"])
+                tab1, tab2, tab3, tab4 = st.tabs(["📅 Account Summary", "📊 SKU Performance", "📂 Detected Columns", "🔍 Debugging"])
+
+                # Account Summary Tab
+                with tab1:
+                    display_account_summary()
 
                 # SKU Performance Tab
                 with tab2:
@@ -242,13 +246,13 @@ def run_web_ui():
                     )
                     st.divider()
 
-                # Detected Columns Tab (unchanged)
-                with tab2:
+                # Detected Columns Tab
+                with tab3:
                     st.subheader("📂 Detected Columns")
                     st.write(df_processed.columns.tolist())
 
-                # Debugging Tab (unchanged)
-                with tab3:
+                # Debugging Tab
+                with tab4:
                     st.subheader("🔍 Debugging: Raw Insights Output")
                     st.write(insights)
 
