@@ -35,10 +35,10 @@ def run_web_ui():
                 insights, df_processed = assess_product_performance(df)
 
                 # Define application tabs
-                tab1, tab2, tab3, tab4 = st.tabs(["📊 SKU Performance", "📂 Detected Columns", "🔍 Debugging", "📅 Account Summary"])
+                tab1, tab2, tab3, tab4 = st.tabs(["📅 Account Summary","📊 SKU Performance", "📂 Detected Columns", "🔍 Debugging"])
 
                 # SKU Performance Tab
-                with tab1:
+                with tab2:
                     st.subheader("📊 Key Metrics Overview")
 
                     # Define Key Performance Metrics Including the New Row
