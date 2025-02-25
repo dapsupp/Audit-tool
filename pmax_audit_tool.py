@@ -4,6 +4,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import logging
 from data_processing import assess_product_performance
+from account_summary import display_account_summary
 
 # Set page configuration
 st.set_page_config(page_title="📊 PMax Audit Tool", layout="wide")
@@ -34,7 +35,7 @@ def run_web_ui():
                 insights, df_processed = assess_product_performance(df)
 
                 # Define application tabs
-                tab1, tab2, tab3 = st.tabs(["📊 SKU Performance", "📂 Detected Columns", "🔍 Debugging"])
+                tab1, tab2, tab3, tab4 = st.tabs(["📊 SKU Performance", "📂 Detected Columns", "🔍 Debugging", "📅 Account Summary"])
 
                 # SKU Performance Tab
                 with tab1:
