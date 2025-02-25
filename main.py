@@ -1,6 +1,7 @@
 import streamlit as st
 import streamlit_authenticator as stauth  # Assuming this is the auth module
 import pmax_audit_tool
+from account_summary import display_account_summary
 
 # Placeholder for authenticator setup (adjust credentials as needed)
 credentials = {
