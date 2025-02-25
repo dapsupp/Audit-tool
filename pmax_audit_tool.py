@@ -35,7 +35,7 @@ def run_web_ui():
                 insights, df_processed = assess_product_performance(df)
 
                 # Define application tabs
-                tab1, tab2, tab3, tab4 = st.tabs(["📅 Account Summary","📊 SKU Performance", "📂 Detected Columns", "🔍 Debugging"])
+                tab1, tab2, tab3, tab4 = st.tabs(["📊 SKU Performance", "📂 Detected Columns", "🔍 Debugging", "📅 Account Summary"])
 
                 # SKU Performance Tab
                 with tab1:
