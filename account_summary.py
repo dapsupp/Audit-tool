@@ -7,6 +7,8 @@ def display_account_summary():
     Displays the Account Summary page, allowing users to upload a CSV file and view key metrics and trends.
     """
     st.subheader("📅 Account Summary")
+    # Inform users about expected columns
+    st.write("Please ensure your CSV file contains the following columns: Month, Conv. value, Currency code, Cost, Conv. value / cost")
     account_summary_file = st.file_uploader(
         "📤 Upload your Account Summary CSV file", 
         type="csv", 
@@ -18,10 +20,19 @@ def display_account_summary():
             # Read the CSV file
             df_summary = pd.read_csv(account_summary_file, encoding="utf-8", on_bad_lines="skip")
             
-            # Validate required columns
-            required_columns = ["Month", "Conv. value", "Currency code", "Cost", "Conv. value / cost"]
-            df_summary.columns = df_summary.columns.str.strip().str.lower().str.replace(' ', '_').str.replace('.', '_')
-            missing_columns = [col for col in required_columns if col.lower().replace(' ', '_').replace('.', '_') not in df_summary.columns]
+            # Standardize column names: replace sequences of spaces, dots, and slashes with a single underscore
+            df_summary.columns = (
+                df_summary.columns
+                .str.strip()
+                .str.lower()
+                .str.replace(r'[\s./]+', '_', regex=True)
+            )
+            
+            # Define required columns in their standardized form
+            required_columns = ["month", "conv_value", "currency_code", "cost", "conv_value_cost"]
+            
+            # Check for missing columns
+            missing_columns = [col for col in required_columns if col not in df_summary.columns]
             if missing_columns:
                 st.error(f"⚠️ Missing columns: {', '.join(missing_columns)}")
             else:
